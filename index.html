@@ -399,12 +399,18 @@
         align-items: center;
         justify-content: center;
         cursor: grab;
-        /* Vertical pans starting on the dots belong to the page:
-           they scroll the list, they don't pick the song up. The
-           script only switches this to "none" once a press-and-hold
-           has armed the drag, so an armed drag isn't stolen by the
-           browser as a scroll. */
-        touch-action: pan-y;
+        /* "none" from the very start, and this matters: the browser
+           fixes a touch gesture's behaviour (scroll vs. page events)
+           from the touch-action in effect when the finger lands.
+           Switching it later — once a press-and-hold has armed —
+           is ignored for that gesture, so with pan-y here Android
+           stole every armed drag as a page scroll (pointercancel)
+           and the song never moved, even though the hold lit up.
+           With "none", touches on the dots are never claimed as a
+           scroll: a press that starts moving is simply ignored by
+           the script until the hold arms, and the rest of the row
+           still scrolls the page as usual. */
+        touch-action: none;
         -webkit-touch-callout: none;
         user-select: none;
         -webkit-user-select: none;
@@ -874,14 +880,15 @@
       /* ---------------- Drag to reorder (mouse + touch, via pointer events on the grip) ----------------
          Press-and-hold to pick a song up: the drag only arms after
          the finger (or mouse) has sat near-still on the dots for
-         HOLD_MS. A touch on the dots that starts moving right away
-         is a scroll, not a grab — the grip lets vertical pans scroll
-         the page (touch-action: pan-y in the CSS), the browser fires
-         pointercancel when it takes the gesture over, and any early
-         movement (or the page scrolling another way) also cancels
-         the pending hold. So scrolling past the dots can never pick
-         a song up by accident, while a deliberate hold-then-drag
-         reorders exactly as before, and the order persists. */
+         HOLD_MS. The grip carries touch-action: none (see the CSS),
+         so the browser never claims a touch on the dots as a page
+         scroll — that claim is decided when the finger lands and
+         can't be revoked mid-gesture, which is why the drag used
+         to arm, light up, and then die on Android. A touch on the
+         dots that starts moving right away is just ignored: early
+         movement cancels the pending hold, so passing over the dots
+         can never pick a song up by accident, while a deliberate
+         hold-then-drag reorders, and the order persists. */
       var HOLD_MS = 450;
       var HOLD_SLOP = 10; // px of movement that cancels a pending hold
       function attachDrag(ul, section) {
@@ -897,9 +904,12 @@
           var rows = Array.prototype.slice.call(ul.children);
           var startIndex = rows.indexOf(row);
           if (startIndex < 0) return;
-          // No preventDefault and no capture-stealing yet: until the
-          // hold arms, this press behaves like any other touch, so a
-          // gesture that turns into a scroll scrolls the page.
+          // Pointer capture goes to the grip right away so move/up
+          // keep arriving there even if the finger drifts off the
+          // dots. Nothing is prevented yet: until the hold arms,
+          // moves are only watched to cancel the pending hold, and
+          // (touch-action: none) the browser leaves the gesture
+          // entirely to the page.
 
           var rowH = row.offsetHeight;
           var startX = ev.clientX;
@@ -924,9 +934,9 @@
           function arm() {
             holdTimer = null;
             armed = true;
-            // From here the drag owns the gesture: stop the browser
-            // treating further vertical movement as a page scroll.
-            grip.style.touchAction = "none";
+            // No touch-action change here: the grip's is already
+            // "none" from the start (see the CSS) — changing it at
+            // this point would be ignored for this gesture anyway.
             grip.classList.add("armed");
             row.classList.add("armed");
             try { if (window.navigator && typeof navigator.vibrate === "function") navigator.vibrate(10); } catch (e) {}
@@ -937,8 +947,8 @@
             var dx = e.clientX - startX;
             var dy = e.clientY - startY;
             if (!armed) {
-              // Moved before the hold completed: a scroll (or a
-              // passing touch), never a grab. Stand down.
+              // Moved before the hold completed: a passing touch,
+              // never a grab. Stand down.
               if (Math.abs(dx) > HOLD_SLOP || Math.abs(dy) > HOLD_SLOP) cancelHold();
               return;
             }
@@ -970,7 +980,6 @@
             grip.removeEventListener("pointerup", onUp);
             grip.removeEventListener("pointercancel", onCancel);
             grip.classList.remove("armed");
-            grip.style.touchAction = "";
             rows.forEach(function (r) { r.style.transform = ""; r.classList.remove("shifted", "dragging", "armed"); });
             if (!commit || !dragging || targetIndex === startIndex) return;
             var ids = rows.map(function (r) { return r.dataset.id; });
@@ -982,9 +991,9 @@
             markActiveRow();
           }
           function onUp() { finish(true); }
-          // pointercancel: the browser took the gesture (a scroll —
-          // the normal outcome for a touch that starts moving on
-          // the dots). Never commits a reorder.
+          // pointercancel: the browser took the gesture away (an
+          // edge gesture, an incoming UI interruption). Never
+          // commits a reorder.
           function onCancel() { finish(false); }
           grip.addEventListener("pointermove", onMove);
           grip.addEventListener("pointerup", onUp);
