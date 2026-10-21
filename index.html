@@ -506,10 +506,66 @@
         color: var(--ink-soft);
       }
       footer a { color: var(--accent); }
+
+      /* ---------- Facebook in-app browser notice ----------
+         Hidden by default; the script at the bottom only unhides
+         it when the page is trapped inside Facebook's in-app
+         browser, where fullscreen and rotation are broken.
+         Normal visitors in a real browser never see it. */
+      .fb-notice {
+        position: relative;
+        background: var(--panel);
+        border: 1px solid var(--accent);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 14px 44px 14px 16px;
+        margin-bottom: 22px;
+      }
+      .fb-notice > strong {
+        display: block;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        margin-bottom: 4px;
+      }
+      .fb-notice p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--ink);
+      }
+      .fb-notice p + p { margin-top: 6px; }
+      .fb-notice .fb-how { color: var(--ink-soft); }
+      .fb-notice-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        appearance: none;
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        color: var(--ink-soft);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+      }
+      .fb-notice-close svg { width: 15px; height: 15px; fill: currentColor; }
+      .fb-notice-close:hover { border-color: var(--accent); color: var(--accent); }
+      .fb-notice-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     </style>
   </head>
   <body>
     <div class="wrap">
+      <div class="fb-notice" id="fbNotice" role="note" hidden>
+        <button class="fb-notice-close" id="fbNoticeClose" type="button" aria-label="Dismiss this notice" title="Dismiss">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+        <strong>Trapped in Facebook&rsquo;s pretend browser?</strong>
+        <p>Facebook has stuffed this page into its own little wrapper &mdash; the one that cheerfully breaks fullscreen and ignores you when you turn your phone sideways. Facebook really shouldn&rsquo;t be doing stupid stuff like hijacking people&rsquo;s links into a broken mini-browser, but here we are.</p>
+        <p class="fb-how">Want the page the way it&rsquo;s meant to work? Tap the <strong>&#8943;</strong> menu and choose <strong>Open in browser</strong>. In a real browser like Chrome, fullscreen actually fullscreens. Imagine that.</p>
+      </div>
       <header>
         <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">
           <svg class="ic-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.39 5.39 0 0 1-4.4 2.26 5.4 5.4 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
@@ -1051,6 +1107,26 @@
         }
       }
       syncThemeToggle();
+
+      /* ---------------- Facebook in-app browser notice ----------------
+         Facebook's app opens links in its own stripped-down wrapper
+         (user agents carrying FBAN / FBAV / FB_IAB and friends),
+         which flatly ignores fullscreen requests and doesn't react
+         to rotating the phone. When that's where we are, show the
+         snide notice at the top telling people how to escape into
+         a real browser. In any normal browser it stays hidden.
+         The #facebook hash also reveals it, purely so the notice
+         can be eyeballed without a Facebook wrapper handy. */
+      var fbNotice = document.getElementById("fbNotice");
+      var fbNoticeClose = document.getElementById("fbNoticeClose");
+      (function () {
+        var ua = navigator.userAgent || "";
+        var inFacebook = /FBAN|FBAV|FB_IAB|FBIOS|FB4A|FBCRN/i.test(ua);
+        if (inFacebook || window.location.hash === "#facebook") {
+          fbNotice.hidden = false;
+        }
+      })();
+      fbNoticeClose.addEventListener("click", function () { fbNotice.hidden = true; });
 
       /* ---------------- Go ---------------- */
       buildPlaylist();
