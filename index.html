@@ -399,12 +399,25 @@
         align-items: center;
         justify-content: center;
         cursor: grab;
-        touch-action: none;
+        /* Vertical pans starting on the dots belong to the page:
+           they scroll the list, they don't pick the song up. The
+           script only switches this to "none" once a press-and-hold
+           has armed the drag, so an armed drag isn't stolen by the
+           browser as a scroll. */
+        touch-action: pan-y;
+        -webkit-touch-callout: none;
+        user-select: none;
+        -webkit-user-select: none;
         flex: none;
         padding: 0;
         border-radius: 6px;
       }
       .grip:active { cursor: grabbing; }
+      /* Armed by a press-and-hold: the dots light up and the row
+         lifts a touch, so it's plain the song is picked up and a
+         drag will now move it. */
+      .grip.armed { background: var(--accent-soft); color: var(--accent); cursor: grabbing; }
+      .track.armed { background: var(--row-active); }
       .grip svg { width: 16px; height: 22px; fill: currentColor; pointer-events: none; }
       .track-main {
         flex: 1;
@@ -611,7 +624,6 @@
             <button class="manual-close" id="manualClose" type="button" aria-label="Hide the user manual" title="Hide the manual">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
             </button>
-            <p class="fs-tip">Tip: to watch big, tap the “Fullscreen” button — it stretches the video across this page and the playlist keeps rolling. Tap the X over the video to close it.</p>
             <p class="fs-tip">Dark or light: tap the moon / sun button in the top-right corner of the page to switch between dark and light mode. The page remembers your choice for next time.</p>
           </div>
           <button class="manual-show" id="manualShow" type="button">User manual</button>
@@ -621,7 +633,7 @@
       <main id="sections"></main>
 
       <footer>
-        <p>All 27 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a> — free to download and pass along.</p>
+        <p>All 28 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a> — free to download and pass along.</p>
       </footer>
     </div>
 
@@ -670,7 +682,8 @@
             { id: "be-nice-to-me", url: "https://archive.org/download/be-nice-to-me-cryptonaire-19/BE%20NICE%20TO%20ME%20%40Cryptonaire19.mp4", title: "BE NICE TO ME @ Cryptonaire 19", size: "158.3 MB", favorite: false },
             { id: "welcome-to-abundance", url: "https://archive.org/download/welcome-to-abundance/WELCOME%20TO%20ABUNDANCE.mp4", title: "WELCOME TO ABUNDANCE", size: "261.6 MB", favorite: false },
             { id: "proof-of-belief", url: "https://archive.org/download/proof-of-belief/Proof%20of%20belief.mp4", title: "Proof Of Belief", size: "169.6 MB", favorite: false },
-            { id: "agents-anthem", url: "https://archive.org/download/agents-anthem/AGENTS%20ANTHEM.mp4", title: "AGENTS ANTHEM", size: "88.2 MB", favorite: false }
+            { id: "agents-anthem", url: "https://archive.org/download/agents-anthem/AGENTS%20ANTHEM.mp4", title: "AGENTS ANTHEM", size: "88.2 MB", favorite: false },
+            { id: "grok-bot-and-optimus", url: "https://archive.org/download/grok-bot-and-optimus/Grok%20Bot%20and%20Optimus.mp4", title: "Grok Bot and Optimus", size: "70.1 MB", favorite: false }
           ]
         }
       ];
@@ -775,7 +788,7 @@
 
           var hint = document.createElement("p");
           hint.className = "drag-hint";
-          hint.textContent = "Tap a song to play it. Drag the dots to put the list in your own order — this device remembers it for next time.";
+          hint.textContent = "Tap a song to play it. To change the order, press and hold the dots beside a song until it lifts, then drag it where you want it — this device remembers it for next time.";
           wrap.appendChild(hint);
 
           var ul = document.createElement("ul");
@@ -798,7 +811,8 @@
         var grip = document.createElement("button");
         grip.className = "grip";
         grip.type = "button";
-        grip.setAttribute("aria-label", "Drag to reorder " + track.title);
+        grip.setAttribute("aria-label", "Press and hold, then drag to reorder " + track.title);
+        grip.title = "Press and hold, then drag to reorder";
         grip.innerHTML = GRIP_SVG;
         li.appendChild(grip);
 
@@ -857,26 +871,78 @@
         });
       }
 
-      /* ---------------- Drag to reorder (mouse + touch, via pointer events on the grip) ---------------- */
+      /* ---------------- Drag to reorder (mouse + touch, via pointer events on the grip) ----------------
+         Press-and-hold to pick a song up: the drag only arms after
+         the finger (or mouse) has sat near-still on the dots for
+         HOLD_MS. A touch on the dots that starts moving right away
+         is a scroll, not a grab — the grip lets vertical pans scroll
+         the page (touch-action: pan-y in the CSS), the browser fires
+         pointercancel when it takes the gesture over, and any early
+         movement (or the page scrolling another way) also cancels
+         the pending hold. So scrolling past the dots can never pick
+         a song up by accident, while a deliberate hold-then-drag
+         reorders exactly as before, and the order persists. */
+      var HOLD_MS = 450;
+      var HOLD_SLOP = 10; // px of movement that cancels a pending hold
       function attachDrag(ul, section) {
+        // A long press on the dots shouldn't pop a context menu.
+        ul.addEventListener("contextmenu", function (ev) {
+          if (ev.target.closest && ev.target.closest(".grip")) ev.preventDefault();
+        });
         ul.addEventListener("pointerdown", function (ev) {
           var grip = ev.target.closest ? ev.target.closest(".grip") : null;
           if (!grip) return;
+          if (ev.button !== undefined && ev.button !== 0) return; // primary button / touch only
           var row = grip.parentElement;
           var rows = Array.prototype.slice.call(ul.children);
           var startIndex = rows.indexOf(row);
           if (startIndex < 0) return;
-          ev.preventDefault();
+          // No preventDefault and no capture-stealing yet: until the
+          // hold arms, this press behaves like any other touch, so a
+          // gesture that turns into a scroll scrolls the page.
 
           var rowH = row.offsetHeight;
+          var startX = ev.clientX;
           var startY = ev.clientY;
           var targetIndex = startIndex;
+          var armed = false;
           var dragging = false;
+          var finished = false;
+          var holdTimer = null;
 
-          grip.setPointerCapture(ev.pointerId);
+          try { grip.setPointerCapture(ev.pointerId); } catch (e) {}
+
+          function cancelHold() {
+            if (holdTimer !== null) { clearTimeout(holdTimer); holdTimer = null; }
+          }
+          function onScroll() {
+            // The page scrolled while waiting: it was a scroll.
+            if (!armed) cancelHold();
+          }
+          window.addEventListener("scroll", onScroll, true);
+
+          function arm() {
+            holdTimer = null;
+            armed = true;
+            // From here the drag owns the gesture: stop the browser
+            // treating further vertical movement as a page scroll.
+            grip.style.touchAction = "none";
+            grip.classList.add("armed");
+            row.classList.add("armed");
+            try { if (window.navigator && typeof navigator.vibrate === "function") navigator.vibrate(10); } catch (e) {}
+          }
+          holdTimer = setTimeout(arm, HOLD_MS);
 
           function onMove(e) {
+            var dx = e.clientX - startX;
             var dy = e.clientY - startY;
+            if (!armed) {
+              // Moved before the hold completed: a scroll (or a
+              // passing touch), never a grab. Stand down.
+              if (Math.abs(dx) > HOLD_SLOP || Math.abs(dy) > HOLD_SLOP) cancelHold();
+              return;
+            }
+            e.preventDefault();
             if (!dragging && Math.abs(dy) > 4) {
               dragging = true;
               row.classList.add("dragging");
@@ -895,12 +961,18 @@
               r.style.transform = off ? "translateY(" + off + "px)" : "";
             });
           }
-          function onUp() {
+          function finish(commit) {
+            if (finished) return;
+            finished = true;
+            cancelHold();
+            window.removeEventListener("scroll", onScroll, true);
             grip.removeEventListener("pointermove", onMove);
             grip.removeEventListener("pointerup", onUp);
-            grip.removeEventListener("pointercancel", onUp);
-            rows.forEach(function (r) { r.style.transform = ""; r.classList.remove("shifted", "dragging"); });
-            if (!dragging || targetIndex === startIndex) return;
+            grip.removeEventListener("pointercancel", onCancel);
+            grip.classList.remove("armed");
+            grip.style.touchAction = "";
+            rows.forEach(function (r) { r.style.transform = ""; r.classList.remove("shifted", "dragging", "armed"); });
+            if (!commit || !dragging || targetIndex === startIndex) return;
             var ids = rows.map(function (r) { return r.dataset.id; });
             var moved = ids.splice(startIndex, 1)[0];
             ids.splice(targetIndex, 0, moved);
@@ -909,9 +981,14 @@
             renderSections();
             markActiveRow();
           }
+          function onUp() { finish(true); }
+          // pointercancel: the browser took the gesture (a scroll —
+          // the normal outcome for a touch that starts moving on
+          // the dots). Never commits a reorder.
+          function onCancel() { finish(false); }
           grip.addEventListener("pointermove", onMove);
           grip.addEventListener("pointerup", onUp);
-          grip.addEventListener("pointercancel", onUp);
+          grip.addEventListener("pointercancel", onCancel);
         });
       }
 
