@@ -490,28 +490,7 @@
         color: var(--ink-soft);
         flex: none;
       }
-      .dl {
-        appearance: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        border: 1px solid var(--line);
-        background: var(--panel-2);
-        color: var(--ink);
-        font: inherit;
-        font-size: 13px;
-        font-weight: 600;
-        text-decoration: none;
-        border-radius: 999px;
-        padding: 7px 12px;
-        flex: none;
-        cursor: pointer;
-      }
-      .dl svg { width: 14px; height: 14px; fill: currentColor; }
-      .dl:hover { border-color: var(--accent); color: var(--accent); }
       @media (max-width: 520px) {
-        .dl .dl-word { display: none; }
-        .dl { padding: 8px 10px; }
         .track-size { display: none; }
         /* The state word goes (the Shuffle button still shows its
            on/off state) so the control row always fits at phone
@@ -593,7 +572,7 @@
         </button>
         <h1>Andy's Slopcore Jukebox</h1>
         <p class="tagline">(Doomer news feed from the horse's mouth)</p>
-        <p class="sub">Computer-made music videos. If you like one, take it — downloads are open.</p>
+        <p class="sub">Computer-made music videos. If you like one, take it.</p>
         <p class="credit">Various artists off X — if one's yours, tell me and I'll credit you.</p>
       </header>
 
@@ -639,7 +618,7 @@
       <main id="sections"></main>
 
       <footer>
-        <p>All 28 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a> — free to download and pass along.</p>
+        <p>All 29 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
       </footer>
     </div>
 
@@ -689,7 +668,8 @@
             { id: "welcome-to-abundance", url: "https://archive.org/download/welcome-to-abundance/WELCOME%20TO%20ABUNDANCE.mp4", title: "WELCOME TO ABUNDANCE", size: "261.6 MB", favorite: false },
             { id: "proof-of-belief", url: "https://archive.org/download/proof-of-belief/Proof%20of%20belief.mp4", title: "Proof Of Belief", size: "169.6 MB", favorite: false },
             { id: "agents-anthem", url: "https://archive.org/download/agents-anthem/AGENTS%20ANTHEM.mp4", title: "AGENTS ANTHEM", size: "88.2 MB", favorite: false },
-            { id: "grok-bot-and-optimus", url: "https://archive.org/download/grok-bot-and-optimus/Grok%20Bot%20and%20Optimus.mp4", title: "Grok Bot and Optimus", size: "70.1 MB", favorite: false }
+            { id: "grok-bot-and-optimus", url: "https://archive.org/download/grok-bot-and-optimus/Grok%20Bot%20and%20Optimus.mp4", title: "Grok Bot and Optimus", size: "70.1 MB", favorite: false },
+            { id: "the-clodyssey", url: "https://archive.org/download/the-clodyssey/The%20Clodyssey.mp4", title: "The Clodyssey", size: "106.1 MB", favorite: false }
           ]
         }
       ];
@@ -761,7 +741,6 @@
 
       /* ---------------- Render track lists ---------------- */
       var GRIP_SVG = '<svg viewBox="0 0 16 24" aria-hidden="true"><circle cx="4.5" cy="5" r="1.8"/><circle cx="11.5" cy="5" r="1.8"/><circle cx="4.5" cy="12" r="1.8"/><circle cx="11.5" cy="12" r="1.8"/><circle cx="4.5" cy="19" r="1.8"/><circle cx="11.5" cy="19" r="1.8"/></svg>';
-      var DL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.6-3.6L18 11l-6 6-6-6 1.4-1.4L11 13.2V3zM5 20h14v2H5z"/></svg>';
       var STAR_SVG = '<svg class="star" viewBox="0 0 24 24" aria-label="Andy’s favourite"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.5l-5.9 3.1 1.2-6.5L2.5 9.5l6.6-.9z"/></svg>';
 
       function renderSections() {
@@ -855,15 +834,6 @@
         size.className = "track-size";
         size.textContent = track.size;
         li.appendChild(size);
-
-        var dl = document.createElement("a");
-        dl.className = "dl";
-        dl.href = track.url;
-        dl.target = "_blank";
-        dl.rel = "noopener";
-        dl.setAttribute("aria-label", "Download " + track.title + " (" + track.size + ")");
-        dl.innerHTML = DL_SVG + '<span class="dl-word">Download</span>';
-        li.appendChild(dl);
 
         return li;
       }
