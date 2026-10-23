@@ -484,14 +484,17 @@
         min-width: 0;
       }
       .star { width: 15px; height: 15px; fill: var(--accent); flex: none; }
-      .track-size {
-        font-family: "IBM Plex Mono", ui-monospace, monospace;
-        font-size: 12px;
-        color: var(--ink-soft);
+      .track-thumb {
+        width: 72px;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        border-radius: 5px;
+        background: var(--panel-2);
         flex: none;
+        display: block;
       }
       @media (max-width: 520px) {
-        .track-size { display: none; }
+        .track-thumb { width: 60px; }
         /* The state word goes (the Shuffle button still shows its
            on/off state) so the control row always fits at phone
            widths instead of the last button being pushed off. */
@@ -618,7 +621,7 @@
       <main id="sections"></main>
 
       <footer>
-        <p>All 32 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
+        <p>All 33 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
       </footer>
     </div>
 
@@ -630,7 +633,9 @@
          (e.g. "Andy-made") can be added later by appending another entry.
          Per track: id = stable slug (also the key in the visitor's
          saved order), url = the track's Internet Archive MP4,
-         title = display title, size = file size label,
+         title = display title, size = file size (kept in the data
+         only — the rows show each video's Archive.org thumbnail
+         beside its title instead),
          favorite = star marker (Andy's picks).
          archive.org serves these as video/mp4 with inline
          disposition and range support, so every track plays in the
@@ -672,7 +677,8 @@
             { id: "the-clodyssey", url: "https://archive.org/download/the-clodyssey/The%20Clodyssey.mp4", title: "The Clodyssey", size: "106.1 MB", favorite: false },
             { id: "agi-asi", url: "https://archive.org/download/agi-asi/AGI%20ASI.mp4", title: "AGI ASI", size: "38.95 MB", favorite: false },
             { id: "youre-absolutely-right", url: "https://archive.org/download/youre-absolutely-right_202610/you're%20absolutely%20right.mp4", title: "You're Absolutely Right", size: "72.6 MB", favorite: false },
-            { id: "no-ai", url: "https://archive.org/download/no-ai_202610/No%20Ai.mp4", title: "No AI", size: "125.4 MB", favorite: false }
+            { id: "no-ai", url: "https://archive.org/download/no-ai_202610/No%20Ai.mp4", title: "No AI", size: "125.4 MB", favorite: false },
+            { id: "allow-once", url: "https://archive.org/download/alloww-once/Alloww%20Once.mp4", title: "Allow Once", size: "133.3 MB", favorite: false }
           ]
         }
       ];
@@ -820,6 +826,21 @@
         eq.innerHTML = "<i></i><i></i><i></i>";
         main.appendChild(eq);
 
+        // The track's little Archive.org thumbnail, beside its
+        // title. The identifier is the path segment right after
+        // /download/ in the track's stream URL; archive.org serves
+        // a JPEG still for it at services/img/<identifier>. Loaded
+        // lazily, and hidden outright if it ever fails so the row
+        // stays clean instead of showing a broken-image icon.
+        var thumb = document.createElement("img");
+        thumb.className = "track-thumb";
+        var idMatch = track.url.match(/\/download\/([^/]+)/);
+        thumb.src = "https://archive.org/services/img/" + (idMatch ? idMatch[1] : track.id);
+        thumb.alt = "";
+        thumb.loading = "lazy";
+        thumb.addEventListener("error", function () { thumb.style.display = "none"; });
+        main.appendChild(thumb);
+
         var title = document.createElement("span");
         title.className = "track-title";
         title.textContent = track.title;
@@ -832,11 +853,6 @@
         }
         main.addEventListener("click", function () { playTrack(track.id); });
         li.appendChild(main);
-
-        var size = document.createElement("span");
-        size.className = "track-size";
-        size.textContent = track.size;
-        li.appendChild(size);
 
         return li;
       }
