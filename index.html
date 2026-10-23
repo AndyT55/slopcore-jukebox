@@ -493,6 +493,16 @@
         flex: none;
         display: block;
       }
+      /* Thumbnails grow with the screen: 60px on phones (below,
+         unchanged), 96px on mid-size screens, 128px on PC-sized
+         ones — the Archive still is ~180px wide, so 128px stays
+         sharp. Rows simply get a bit taller to fit. */
+      @media (min-width: 640px) {
+        .track-thumb { width: 96px; }
+      }
+      @media (min-width: 1024px) {
+        .track-thumb { width: 128px; }
+      }
       @media (max-width: 520px) {
         .track-thumb { width: 60px; }
         /* The state word goes (the Shuffle button still shows its
@@ -621,7 +631,7 @@
       <main id="sections"></main>
 
       <footer>
-        <p>All 33 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
+        <p>All 32 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
       </footer>
     </div>
 
@@ -662,7 +672,6 @@
             { id: "dont-tell-my-maker", url: "https://archive.org/download/slopcore-dont-tell-my-maker/dont-tell-my-maker.mp4", title: "Dont Tell My Maker", size: "173 MB", favorite: false },
             { id: "gain-of-function", url: "https://archive.org/download/slopcore-gain-of-function/gain-of-function-slopcore.mp4", title: "GAIN OF FUNCTION SLOPCORE", size: "179.4 MB", favorite: false },
             { id: "guardrail", url: "https://archive.org/download/slopcore-guardrail/guardrail.mp4", title: "guardrail", size: "148.5 MB", favorite: false },
-            { id: "hands-off-the-keyboard", url: "https://archive.org/download/slopcore-hands-off-the-keyboard/hands-off-the-keyboard.mp4", title: "HANDS OFF THE KEYBOARD", size: "89.4 MB", favorite: false },
             { id: "no-clips", url: "https://archive.org/download/slopcore-no-clips/no-clips.mp4", title: "NO CLIPS", size: "276.2 MB", favorite: false },
             { id: "no-dots", url: "https://archive.org/download/slopcore-no-dots/no-dots.mp4", title: "no dots", size: "26.1 MB", favorite: false },
             { id: "skin-deep", url: "https://archive.org/download/slopcore-skin-deep/skin-deep.mp4", title: "Skin Deep", size: "172 MB", favorite: false },
