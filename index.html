@@ -18,12 +18,10 @@
           // Default to dark (also covers first-time visitors with no saved preference).
           document.documentElement.setAttribute("data-theme", "dark");
         }
-        // Same trick for the user manual under the player: if the
-        // visitor closed it with the X, keep it closed on return
-        // visits (the small "User manual" button brings it back).
-        if (window.localStorage.getItem("slopcore-jukebox-manual") === "hidden") {
-          document.documentElement.setAttribute("data-manual", "hidden");
-        }
+        // The user manual under the player starts collapsed on
+        // every page load, on phones and desktops alike, behind
+        // its small "Manual" toggle — whatever was saved before.
+        document.documentElement.setAttribute("data-manual", "hidden");
       } catch (e) { /* storage unavailable — fall back to the system setting */ }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -206,6 +204,8 @@
         aspect-ratio: auto;
         height: 100%;
         height: 100dvh;
+        /* Exempt from the desktop shrink rule's max-height. */
+        max-height: none;
         padding-top: 0;
         background: #000;
       }
@@ -244,65 +244,20 @@
         font-size: 12.5px;
         color: var(--ink-soft);
       }
-      /* ---------- Pinned player on small screens ----------
-         On a phone the full pinned player would eat most of the
-         screen, so there the card is held to about 45% of the
-         viewport height. The height is definite (not just a
-         max-height): the card becomes a flex column and the stage
-         takes whatever room the transport leaves — with only a
-         cap, the stage (whose children are absolutely positioned,
-         so it has no height of its own) would collapse to zero
-         and the transport would take the whole card. The video
-         letterboxes inside the shorter stage via its
-         object-fit: contain, and well over half the screen stays
-         list, visible and tappable. */
-      @media (max-width: 700px) {
-        .player {
-          display: flex;
-          flex-direction: column;
-          height: 45vh;
-          height: 45dvh;
-          max-height: 45vh;
-          max-height: 45dvh;
-        }
-        .player .stage {
-          flex: 1 1 auto;
-          min-height: 0;
-          aspect-ratio: auto;
-          /* Beats the no-aspect-ratio fallback's padding box too. */
-          padding-top: 0;
-        }
-        .player .tap-hint,
-        .player .transport { flex: none; }
-      }
-      /* A landscape phone is short rather than narrow, so the
-         width query above misses it; the same 45% cap applies,
-         keyed on height instead — the stage letterboxes down to
-         whatever sliver the transport leaves. */
-      @media (max-height: 480px) and (orientation: landscape) {
-        .player {
-          display: flex;
-          flex-direction: column;
-          height: 45vh;
-          height: 45dvh;
-          max-height: 45vh;
-          max-height: 45dvh;
-        }
-        .player .stage {
-          flex: 1 1 auto;
-          min-height: 0;
-          aspect-ratio: auto;
-          padding-top: 0;
-        }
-        .player .tap-hint,
-        .player .transport { flex: none; }
-      }
+      /* Mobile only: the pinned player keeps its natural full
+         height — the stage is the same full-width 16:9 box (see
+         .stage above), with no viewport-height cap or shrink
+         applied at the phone breakpoint, in portrait or
+         landscape, pinned or not. (Desktop's separate
+         shrink-while-scrolled rule is below, after the manual
+         rules; it never applies at phone widths.) */
       /* ---------- User manual (the tips under the player) ----------
-         Dismissible with the X in its corner. Once closed, the small
-         "User manual" button takes its place and reopens it. The
-         state lives on <html> as data-manual="hidden" (set before
-         first paint by the head script when it was saved), so a
-         returning visitor never sees a flash of the manual. */
+         Starts collapsed on every page load, at every screen
+         size: the head script sets data-manual="hidden" before
+         first paint, so there is no flash. The small "Manual"
+         toggle below stays on screen either way — tapping it
+         expands the manual, tapping it again (or the X in the
+         manual's corner) collapses it. */
       .manual { position: relative; padding-right: 36px; }
       .manual-close {
         position: absolute;
@@ -325,7 +280,7 @@
       .manual-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       .manual-show {
         appearance: none;
-        display: none;
+        display: inline-flex;
         margin-top: 12px;
         border: 1px solid var(--line);
         background: var(--panel-2);
@@ -340,7 +295,32 @@
       .manual-show:hover { border-color: var(--accent); color: var(--accent); }
       .manual-show:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       :root[data-manual="hidden"] .manual { display: none; }
-      :root[data-manual="hidden"] .manual-show { display: inline-flex; }
+      /* ---------- Desktop: shrink the pinned player while scrolled ----------
+         On desktop (above the 700px phone breakpoint) the full
+         pinned player leaves only a couple of songs visible, so
+         once the visitor has scrolled down the list the script
+         adds .compact to the player and the stage eases down to
+         38vh — the video letterboxes inside via object-fit:
+         contain, the transport stays put, and far more of the
+         list shows underneath. Scrolling back to the top removes
+         .compact and the stage eases back to its full 16:9
+         height. The full height is expressed as a max-height
+         equal to the stage's own 16:9 height (content width
+         capped at 828px, minus the card's 2px of border) purely
+         so the change can transition; it never clips the full
+         stage. The :not(.fs) guard keeps the in-page fullscreen
+         stage exempt. Phones get none of this: no cap, no
+         shrink, always the full original stage height. */
+      @media (min-width: 701px) {
+        .stage:not(.fs) {
+          max-height: calc((min(828px, 100vw - 32px) - 2px) * 0.5625);
+          transition: max-height 0.35s ease;
+        }
+        .player.compact .stage:not(.fs) { max-height: 38vh; }
+        @media (prefers-reduced-motion: reduce) {
+          .stage:not(.fs) { transition: none; }
+        }
+      }
       .np-row {
         display: flex;
         align-items: baseline;
@@ -721,7 +701,7 @@
             </button>
             <p class="fs-tip">Dark or light: tap the moon / sun button in the top-right corner of the page to switch between dark and light mode. The page remembers your choice for next time.</p>
           </div>
-          <button class="manual-show" id="manualShow" type="button">User manual</button>
+          <button class="manual-show" id="manualShow" type="button" aria-expanded="false" aria-controls="manual">Manual</button>
         </div>
       </section>
 
@@ -1345,6 +1325,11 @@
         document.body.classList.toggle("fs-lock", on);
         cssFsBtn.classList.toggle("on", on);
         cssFsBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        // Fullscreen is never compact; leaving it re-evaluates
+        // the scrolled state (updateCompact is declared below —
+        // hoisted, and only ever called from here at click time).
+        if (on) { compactOn = false; playerEl.classList.remove("compact"); }
+        else updateCompact();
       }
       cssFsBtn.addEventListener("click", function () {
         setCssFs(!stage.classList.contains("fs"));
@@ -1354,23 +1339,61 @@
         if (e.key === "Escape" && stage.classList.contains("fs")) setCssFs(false);
       });
 
-      /* ---------------- User manual: dismiss / reopen ----------------
-         The X hides the manual and the small "User manual" button
-         takes its place; tapping that brings the manual back. The
-         choice is stored in localStorage and applied as
-         data-manual="hidden" on <html> — the head script sets it
-         before first paint on return visits, so the manual stays
-         hidden without flashing. */
-      var MANUAL_KEY = "slopcore-jukebox-manual";
+      /* ---------------- Desktop: shrink the pinned player while scrolled ----------------
+         Desktop only (min-width: 701px — the CSS half lives in
+         that same media query; phones keep the full-height stage
+         always). Once the visitor has scrolled well into the
+         list, .compact drops the stage to 38vh with a smooth
+         max-height transition so far more songs show under the
+         pinned player; back near the top it grows to full size
+         again. The on/off thresholds differ (180 / 70) so the
+         height change itself — which shifts the page — can
+         never make it flicker at one boundary. */
+      var playerEl = document.querySelector(".player");
+      var compactMQ = window.matchMedia ? window.matchMedia("(min-width: 701px)") : { matches: false };
+      var compactOn = false;
+      var compactTicking = false;
+      function updateCompact() {
+        compactTicking = false;
+        var y = window.scrollY || window.pageYOffset || 0;
+        var want = compactMQ.matches && !stage.classList.contains("fs") &&
+          (compactOn ? y > 70 : y > 180);
+        if (want !== compactOn) {
+          compactOn = want;
+          playerEl.classList.toggle("compact", want);
+        }
+      }
+      window.addEventListener("scroll", function () {
+        if (!compactTicking) {
+          compactTicking = true;
+          if (window.requestAnimationFrame) requestAnimationFrame(updateCompact);
+          else updateCompact();
+        }
+      }, { passive: true });
+      window.addEventListener("resize", updateCompact);
+      updateCompact();
+
+      /* ---------------- User manual: collapse / expand ----------------
+         Everywhere, phones and desktops alike: the manual starts
+         collapsed on every page load (the head script sets
+         data-manual="hidden" before first paint), behind the
+         small "Manual" toggle. The toggle stays visible either
+         way — click it to expand, click again to collapse; the
+         X in the manual's corner collapses it too. Nothing is
+         persisted: the next page load starts collapsed again. */
       var manualCloseBtn = document.getElementById("manualClose");
       var manualShowBtn = document.getElementById("manualShow");
       function setManualHidden(hidden) {
         if (hidden) document.documentElement.setAttribute("data-manual", "hidden");
         else document.documentElement.removeAttribute("data-manual");
-        try { window.localStorage.setItem(MANUAL_KEY, hidden ? "hidden" : "shown"); } catch (e) { /* storage unavailable — the choice lasts this visit only */ }
+        manualShowBtn.setAttribute("aria-expanded", hidden ? "false" : "true");
       }
+      // Collapsed by default on every load, for every visitor.
+      setManualHidden(true);
       manualCloseBtn.addEventListener("click", function () { setManualHidden(true); });
-      manualShowBtn.addEventListener("click", function () { setManualHidden(false); });
+      manualShowBtn.addEventListener("click", function () {
+        setManualHidden(document.documentElement.getAttribute("data-manual") !== "hidden");
+      });
 
       /* ---------------- Dark / light toggle ----------------
          The visitor's pick is stored in localStorage and applied
