@@ -511,6 +511,36 @@
         .shuffle-state { display: none; }
       }
 
+      /* ---------- "Not again" (muted tracks) ----------
+         A muted row stays on the shelf but greys out: the
+         thumbnail goes grayscale and dim, the title and number
+         fade. The little pill button on the row is the toggle —
+         "Not again" mutes, "Undo" brings the song back. */
+      .notagain {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        color: var(--ink-soft);
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 6px 10px;
+        cursor: pointer;
+        flex: none;
+        white-space: nowrap;
+      }
+      .notagain:hover { border-color: var(--accent); color: var(--accent); }
+      .notagain:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .track.muted .track-thumb { filter: grayscale(1); opacity: 0.4; }
+      .track.muted .track-title { opacity: 0.45; }
+      .track.muted .track-num { opacity: 0.45; }
+      .track.muted .notagain {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
       footer {
         margin-top: 34px;
         font-size: 13.5px;
@@ -694,6 +724,7 @@
 
       var ORDER_KEY = "slopcore-jukebox-order-v1";
       var THEME_KEY = "slopcore-jukebox-theme";
+      var MUTED_KEY = "slopcore-jukebox-muted-v1";
 
       /* ---------------- State ---------------- */
       var byId = {};
@@ -734,6 +765,72 @@
           delete all[sectionId];
           window.localStorage.setItem(ORDER_KEY, JSON.stringify(all));
         } catch (e) {}
+      }
+
+      /* ---------------- "Not again" (muted tracks) ----------------
+         The visitor's muted set, saved per device under its own
+         localStorage key. It stores each track's Archive.org
+         identifier — the path segment after /download/ in its
+         stream URL — which never changes, so the set survives
+         reorders and new tracks being added. A muted track stays
+         in the list, greyed out; sequential advance, Next / Prev
+         and Shuffle all skip it, but tapping its row directly
+         still plays it — a deliberate tap outranks the mute. */
+      var mutedSet = loadMuted();
+      function archiveId(track) {
+        var m = track.url.match(/\/download\/([^/]+)/);
+        return m ? m[1] : track.id;
+      }
+      function isMuted(track) { return !!mutedSet[archiveId(track)]; }
+      function loadMuted() {
+        try {
+          var raw = window.localStorage.getItem(MUTED_KEY);
+          var arr = raw ? JSON.parse(raw) : [];
+          var out = {};
+          if (arr && arr.length) arr.forEach(function (k) { out[k] = 1; });
+          return out;
+        } catch (e) { return {}; }
+      }
+      function saveMuted() {
+        try {
+          window.localStorage.setItem(MUTED_KEY, JSON.stringify(Object.keys(mutedSet)));
+        } catch (e) { /* storage unavailable — the mutes last this visit only */ }
+      }
+      function firstUnmuted() {
+        for (var i = 0; i < playlist.length; i++) if (!isMuted(playlist[i])) return playlist[i];
+        return null;
+      }
+      function syncMuteBtn(btn, track) {
+        var muted = isMuted(track);
+        btn.textContent = muted ? "Undo" : "Not again";
+        btn.setAttribute("aria-pressed", muted ? "true" : "false");
+        btn.setAttribute("aria-label", muted
+          ? "Undo — let " + track.title + " play again"
+          : "Not again — skip " + track.title);
+        btn.title = muted ? "Let this song play again" : "Don't play this song again";
+      }
+      function toggleMute(id) {
+        var track = byId[id];
+        if (!track) return;
+        var key = archiveId(track);
+        var nowMuted = !mutedSet[key];
+        if (nowMuted) mutedSet[key] = 1; else delete mutedSet[key];
+        saveMuted();
+        var rows = sectionsEl.querySelectorAll(".track");
+        rows.forEach(function (row) {
+          if (row.dataset.id !== id) return;
+          row.classList.toggle("muted", nowMuted);
+          var btn = row.querySelector(".notagain");
+          if (btn) syncMuteBtn(btn, track);
+        });
+        // Muting the song that's playing right now: hop to the
+        // next unmuted song — or stop, if there isn't one.
+        if (nowMuted && currentId === id && playing) {
+          var hasOther = false;
+          playlist.forEach(function (t) { if (t.id !== id && !isMuted(t)) hasOther = true; });
+          if (hasOther) next(false);
+          else vid.pause();
+        }
       }
 
       var currentId = null;
@@ -791,7 +888,7 @@
 
           var hint = document.createElement("p");
           hint.className = "drag-hint";
-          hint.textContent = "Tap a song to play it. To change the order, press and hold the dots beside a song until it lifts, then drag it where you want it — this device remembers it for next time.";
+          hint.textContent = "Tap a song to play it. To change the order, press and hold the dots beside a song until it lifts, then drag it where you want it — this device remembers it for next time. Tap \"Not again\" to grey a song out and the jukebox will skip it; tap Undo to bring it back.";
           wrap.appendChild(hint);
 
           var ul = document.createElement("ul");
@@ -810,6 +907,7 @@
         var li = document.createElement("li");
         li.className = "track";
         li.dataset.id = track.id;
+        if (isMuted(track)) li.classList.add("muted");
 
         var grip = document.createElement("button");
         grip.className = "grip";
@@ -862,6 +960,20 @@
         }
         main.addEventListener("click", function () { playTrack(track.id); });
         li.appendChild(main);
+
+        // The "Not again" toggle sits outside the play button, so
+        // tapping it never starts the song (and it stops the click
+        // from bubbling anywhere else, too). It also sits clear of
+        // the drag grip, so press-and-hold reorder is untouched.
+        var muteBtn = document.createElement("button");
+        muteBtn.className = "notagain";
+        muteBtn.type = "button";
+        syncMuteBtn(muteBtn, track);
+        muteBtn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          toggleMute(track.id);
+        });
+        li.appendChild(muteBtn);
 
         return li;
       }
@@ -1050,42 +1162,82 @@
       }
 
       function randomOtherId() {
-        if (playlist.length < 2) return currentId;
-        var id;
-        do { id = playlist[Math.floor(Math.random() * playlist.length)].id; } while (id === currentId);
-        return id;
+        // Shuffle draws only from unmuted tracks other than the
+        // current one; null when there's nothing to draw.
+        var candidates = [];
+        playlist.forEach(function (t) {
+          if (t.id !== currentId && !isMuted(t)) candidates.push(t.id);
+        });
+        if (!candidates.length) return null;
+        return candidates[Math.floor(Math.random() * candidates.length)];
       }
 
       function next(auto) {
         if (!playlist.length) return;
-        if (currentId === null) { playTrack(playlist[0].id); return; }
-        if (shuffle) { playTrack(randomOtherId()); return; }
-        var i = currentIndex();
-        if (i < 0) { playTrack(playlist[0].id); return; }
-        if (i === playlist.length - 1) {
-          if (auto) {
-            // End of the list on auto-advance: stop quietly.
-            markActiveRow();
-            return;
-          }
-          playTrack(playlist[0].id);
+        if (currentId === null) {
+          var first = firstUnmuted();
+          if (first) playTrack(first.id);
           return;
         }
-        playTrack(playlist[i + 1].id);
+        if (shuffle) {
+          var rid = randomOtherId();
+          if (rid !== null) playTrack(rid);
+          return;
+        }
+        var i = currentIndex();
+        if (i < 0) {
+          var f = firstUnmuted();
+          if (f) playTrack(f.id);
+          return;
+        }
+        // Walk forward to the nearest unmuted track. Manual Next
+        // wraps around the end of the list; auto-advance stops
+        // there instead. If every other track is muted, nothing
+        // plays — no loop, no error.
+        for (var step = 1; step < playlist.length; step++) {
+          var j = i + step;
+          if (j >= playlist.length) {
+            if (auto) {
+              // End of the list on auto-advance: stop quietly.
+              markActiveRow();
+              return;
+            }
+            j -= playlist.length;
+          }
+          if (!isMuted(playlist[j])) { playTrack(playlist[j].id); return; }
+        }
       }
 
       function prev() {
         if (!playlist.length) return;
-        if (currentId === null) { playTrack(playlist[0].id); return; }
-        if (!vid.hidden && vid.currentTime > 4) { vid.currentTime = 0; return; }
-        if (shuffle && playHistory.length > 1) {
-          playHistory.pop();
-          playTrack(playHistory[playHistory.length - 1], { fromHistory: true });
+        if (currentId === null) {
+          var firstP = firstUnmuted();
+          if (firstP) playTrack(firstP.id);
           return;
         }
+        if (!vid.hidden && vid.currentTime > 4) { vid.currentTime = 0; return; }
+        if (shuffle && playHistory.length > 1) {
+          // Walk the play history back to the nearest unmuted song.
+          playHistory.pop();
+          while (playHistory.length) {
+            var hid = playHistory[playHistory.length - 1];
+            if (byId[hid] && !isMuted(byId[hid])) {
+              playTrack(hid, { fromHistory: true });
+              return;
+            }
+            playHistory.pop();
+          }
+        }
         var i = currentIndex();
-        if (i <= 0) { playTrack(playlist[playlist.length - 1].id); return; }
-        playTrack(playlist[i - 1].id);
+        if (i < 0) return;
+        // Walk backward (wrapping at the top of the list, as Prev
+        // always has) to the nearest unmuted track; if there is
+        // none, stay put.
+        for (var step = 1; step < playlist.length; step++) {
+          var j = i - step;
+          if (j < 0) j += playlist.length;
+          if (!isMuted(playlist[j])) { playTrack(playlist[j].id); return; }
+        }
       }
 
       /* ---------------- Video events ----------------
