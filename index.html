@@ -1248,6 +1248,30 @@
         });
       }
 
+      /* ---------------- GoatCounter play events ----------------
+         One event per song START: playTrack() below is the single
+         funnel every "a different song begins" path runs through
+         — a row tap, Prev / Next, a shuffle pick, auto-advance on
+         "ended", the mini-bar's Next button — so counting here
+         (and only when the id actually changes) catches each new
+         song exactly once. Pause / resume of the same song, seeks
+         and volume changes go straight to the <video> element and
+         never pass through playTrack, so they are never counted.
+         The call is guarded: if the GoatCounter script hasn't
+         loaded yet (slow, or blocked outright) it does nothing,
+         silently — stats must never break playback. */
+      function countPlay(track) {
+        try {
+          if (window.goatcounter && typeof window.goatcounter.count === "function") {
+            window.goatcounter.count({
+              path: "play/" + archiveId(track),
+              title: track.title,
+              event: true
+            });
+          }
+        } catch (e) { /* stats are optional — playback carries on regardless */ }
+      }
+
       /* ---------------- Playback ----------------
          Every track plays in the one native <video> element with its
          own controls. The page puts nothing over it — it only loads
@@ -1257,7 +1281,9 @@
         opts = opts || {};
         var track = byId[id];
         if (!track) return;
+        var isNewTrack = id !== currentId;
         currentId = id;
+        if (isNewTrack) countPlay(track);
         if (!opts.fromHistory && playHistory[playHistory.length - 1] !== id) playHistory.push(id);
 
         npTitle.textContent = track.title;
@@ -1657,5 +1683,7 @@
         markActiveRow();
       }
     </script>
+    <script data-goatcounter="https://andyt55.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
   </body>
 </html>
