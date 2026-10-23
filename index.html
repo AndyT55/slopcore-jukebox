@@ -152,7 +152,21 @@
       }
 
       /* ---------- Player ---------- */
+      /* Pinned to the top of the viewport: once the visitor
+         scrolls, the player sticks there and the track list
+         scrolls beneath it, so a song tapped far down the list
+         plays in a player that's still on screen — and tapping a
+         song never scrolls the page to it (playTrack does no
+         scrolling; the pinned player is simply already there).
+         z-index sits above a dragged row's 20 so songs slide
+         underneath the player, never over it. Nothing here breaks
+         the in-page fullscreen: the stage's .fs class takes it
+         fixed over the whole screen as before, and leaving
+         fullscreen drops it straight back into this sticky card. */
       .player {
+        position: sticky;
+        top: 0;
+        z-index: 50;
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: var(--radius);
@@ -229,6 +243,59 @@
         margin: 10px 0 0;
         font-size: 12.5px;
         color: var(--ink-soft);
+      }
+      /* ---------- Pinned player on small screens ----------
+         On a phone the full pinned player would eat most of the
+         screen, so there the card is held to about 45% of the
+         viewport height. The height is definite (not just a
+         max-height): the card becomes a flex column and the stage
+         takes whatever room the transport leaves — with only a
+         cap, the stage (whose children are absolutely positioned,
+         so it has no height of its own) would collapse to zero
+         and the transport would take the whole card. The video
+         letterboxes inside the shorter stage via its
+         object-fit: contain, and well over half the screen stays
+         list, visible and tappable. */
+      @media (max-width: 700px) {
+        .player {
+          display: flex;
+          flex-direction: column;
+          height: 45vh;
+          height: 45dvh;
+          max-height: 45vh;
+          max-height: 45dvh;
+        }
+        .player .stage {
+          flex: 1 1 auto;
+          min-height: 0;
+          aspect-ratio: auto;
+          /* Beats the no-aspect-ratio fallback's padding box too. */
+          padding-top: 0;
+        }
+        .player .tap-hint,
+        .player .transport { flex: none; }
+      }
+      /* A landscape phone is short rather than narrow, so the
+         width query above misses it; the same 45% cap applies,
+         keyed on height instead — the stage letterboxes down to
+         whatever sliver the transport leaves. */
+      @media (max-height: 480px) and (orientation: landscape) {
+        .player {
+          display: flex;
+          flex-direction: column;
+          height: 45vh;
+          height: 45dvh;
+          max-height: 45vh;
+          max-height: 45dvh;
+        }
+        .player .stage {
+          flex: 1 1 auto;
+          min-height: 0;
+          aspect-ratio: auto;
+          padding-top: 0;
+        }
+        .player .tap-hint,
+        .player .transport { flex: none; }
       }
       /* ---------- User manual (the tips under the player) ----------
          Dismissible with the X in its corner. Once closed, the small
