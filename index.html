@@ -85,7 +85,7 @@
       }
       * { box-sizing: border-box; }
       [hidden] { display: none !important; }
-      html, body { margin: 0; padding: 0; }
+      html, body { margin: 0; padding: 0; overflow-anchor: none; }
       body {
         background: var(--bg);
         color: var(--ink);
@@ -320,6 +320,78 @@
         @media (prefers-reduced-motion: reduce) {
           .stage:not(.fs) { transition: none; }
         }
+      }
+      /* ---------- Browse mode: the pinned player as a mini-bar ----------
+         Scrolling down the list collapses the pinned player into
+         a slim 56px bar (the script adds .mini): the stage eases
+         down to a 96x54 sliver of the still-playing video at the
+         left — same <video> element, never reloaded or moved in
+         the DOM, so playback never skips — the transport eases
+         shut, and the mini-bar takes its place with the song
+         title and its own play / pause and next buttons. Scrolling up, or
+         tapping the bar, removes .mini and everything eases back:
+         full height on phones; on desktop the compact logic
+         above decides full vs. 38vh from the scroll position.
+         The global max-height here equals the stage's natural
+         16:9 height (as in the desktop rule) purely so the
+         collapse can transition on every screen size, phones
+         included; width: 100% gives the width a transitionable
+         value instead of auto. The mini rule follows the compact
+         rule at equal specificity, so it wins while both apply. */
+      .stage:not(.fs) {
+        width: 100%;
+        max-height: calc((min(828px, 100vw - 32px) - 2px) * 0.5625);
+        transition: max-height 0.38s ease, width 0.38s ease;
+      }
+      .transport {
+        max-height: 640px;
+        transition: max-height 0.32s ease, opacity 0.25s ease, padding 0.32s ease;
+      }
+      .player.mini { cursor: pointer; }
+      .player.mini .stage:not(.fs) {
+        width: 96px;
+        max-height: 54px;
+      }
+      /* The sliver is a picture, not a control surface — clicks
+         land on the stage and expand the player (script below);
+         the native controls are also switched off while mini. */
+      .player.mini .stage video { pointer-events: none; }
+      .player.mini .transport {
+        max-height: 0;
+        opacity: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        overflow: hidden;
+      }
+      .player.mini .tap-hint { display: none; }
+      .mini-bar {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 106px;
+        right: 6px;
+        height: 56px;
+        align-items: center;
+        gap: 6px;
+        z-index: 6;
+      }
+      .player.mini .mini-bar { display: flex; }
+      .mini-title {
+        flex: 1;
+        min-width: 0;
+        font-weight: 700;
+        font-size: 14.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .cbtn.mini-btn { width: 40px; height: 40px; }
+      .cbtn.mini-btn svg { width: 18px; height: 18px; }
+      .mini-chevron { color: var(--ink-soft); flex: none; display: inline-flex; }
+      .mini-chevron svg { width: 16px; height: 16px; fill: currentColor; }
+      @media (prefers-reduced-motion: reduce) {
+        .stage:not(.fs) { transition: none; }
+        .transport { transition: none; }
       }
       .np-row {
         display: flex;
@@ -703,6 +775,17 @@
           </div>
           <button class="manual-show" id="manualShow" type="button" aria-expanded="false" aria-controls="manual">Manual</button>
         </div>
+        <div class="mini-bar" id="miniBar">
+          <span class="mini-title" id="miniTitle">Nothing yet — pick a song</span>
+          <button class="cbtn mini-btn" id="miniPlayBtn" type="button" aria-label="Play" title="Play">
+            <svg id="miniPlayIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13c0 .8.9 1.3 1.6.9l10-6.5c.6-.4.6-1.4 0-1.8l-10-6.5c-.7-.4-1.6.1-1.6.9z"/></svg>
+            <svg id="miniPauseIcon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+          </button>
+          <button class="cbtn mini-btn" id="miniNextBtn" type="button" aria-label="Next song" title="Next">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.8 5H18v14h-2.2zM5 5.8v12.4c0 .8.9 1.3 1.6.9l8.5-6.2a1.05 1.05 0 0 0 0-1.8L6.6 4.9C5.9 4.5 5 5 5 5.8z"/></svg>
+          </button>
+          <span class="mini-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15.5 4.5 8l1.4-1.4L12 12.7l6.1-6.1L19.5 8z"/></svg></span>
+        </div>
       </section>
 
       <main id="sections"></main>
@@ -897,6 +980,11 @@
       var shuffleBtn = document.getElementById("shuffleBtn");
       var shuffleState = document.getElementById("shuffleState");
       var sectionsEl = document.getElementById("sections");
+      var miniTitle = document.getElementById("miniTitle");
+      var miniPlayBtn = document.getElementById("miniPlayBtn");
+      var miniNextBtn = document.getElementById("miniNextBtn");
+      var miniPlayIcon = document.getElementById("miniPlayIcon");
+      var miniPauseIcon = document.getElementById("miniPauseIcon");
 
       /* Volume starts at 50% so a song never comes in blasting at
          full. The visitor adjusts it with the video's native
@@ -1173,6 +1261,7 @@
         if (!opts.fromHistory && playHistory[playHistory.length - 1] !== id) playHistory.push(id);
 
         npTitle.textContent = track.title;
+        miniTitle.textContent = track.title;
         showVideo(track);
         markActiveRow();
       }
@@ -1294,9 +1383,9 @@
          next track (shuffle-aware, via next()). Play/pause just
          refresh the list's playing indicator. Seeking and pausing
          are the native controls' business. */
-      vid.addEventListener("ended", function () { playing = false; next(true); });
-      vid.addEventListener("play", function () { playing = true; tapHint.hidden = true; markActiveRow(); });
-      vid.addEventListener("pause", function () { playing = false; markActiveRow(); });
+      vid.addEventListener("ended", function () { playing = false; syncMiniPlay(); next(true); });
+      vid.addEventListener("play", function () { playing = true; tapHint.hidden = true; syncMiniPlay(); markActiveRow(); });
+      vid.addEventListener("pause", function () { playing = false; syncMiniPlay(); markActiveRow(); });
 
       /* ---------------- Controls ----------------
          Prev / Next / Shuffle plus the fullscreen button —
@@ -1328,7 +1417,7 @@
         // Fullscreen is never compact; leaving it re-evaluates
         // the scrolled state (updateCompact is declared below —
         // hoisted, and only ever called from here at click time).
-        if (on) { compactOn = false; playerEl.classList.remove("compact"); }
+        if (on) { setMini(false); compactOn = false; playerEl.classList.remove("compact"); }
         else updateCompact();
       }
       cssFsBtn.addEventListener("click", function () {
@@ -1372,6 +1461,99 @@
       }, { passive: true });
       window.addEventListener("resize", updateCompact);
       updateCompact();
+
+      /* ---------------- Browse mode: collapse the pinned player to a mini-bar ----------------
+         Phones and desktops alike. Scrolling DOWN the list past
+         a short threshold (140px) adds .mini: the player eases
+         into the 56px bar (CSS above) so nearly the whole screen
+         becomes playlist. Scrolling UP again, or tapping the
+         bar anywhere but its buttons, expands it back — on
+         desktop updateCompact() then re-applies the full vs.
+         38vh size for the scroll position, on phones it's the
+         full original height as always. The <video> element is
+         never moved, reloaded, or re-sourced here — only CSS
+         sizes and the controls flag change — so the song plays
+         straight through collapse and expand. Direction is read
+         from the accumulated scroll delta between animation
+         frames, with a few px of slop so the height change
+         itself can't retrigger the opposite move. */
+      var miniOn = false;
+      var miniLastY = window.scrollY || window.pageYOffset || 0;
+      var miniDy = 0;
+      var miniTicking = false;
+      var miniGuardCycles = 0;
+      function syncMiniPlay() {
+        var isPlaying = !vid.paused && !vid.ended;
+        miniPlayIcon.hidden = isPlaying;
+        miniPauseIcon.hidden = !isPlaying;
+        miniPlayBtn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
+        miniPlayBtn.title = isPlaying ? "Pause" : "Play";
+      }
+      function setMini(on) {
+        if (on === miniOn) return;
+        if (on && stage.classList.contains("fs")) return;
+        miniOn = on;
+        playerEl.classList.toggle("mini", on);
+        // Ignore scroll triggers for the next few evaluations
+        // after a toggle: the height change itself can nudge the
+        // scroll position (scroll anchoring is also off for this
+        // page, above), and that nudge must not read as the
+        // opposite gesture. A real scroll keeps firing events
+        // well past the skipped few.
+        miniGuardCycles = 3;
+        // The sliver is a picture, not a control surface: switch
+        // the native controls off while mini so they don't crowd
+        // the bar; restored on expand. Toggling controls never
+        // reloads or restarts playback.
+        vid.controls = !on;
+        if (!on) updateCompact();
+        syncMiniPlay();
+      }
+      function updateMini() {
+        miniTicking = false;
+        var y = miniLastY;
+        var dy = miniDy;
+        miniDy = 0;
+        if (miniGuardCycles > 0) { miniGuardCycles--; return; }
+        if (stage.classList.contains("fs")) { setMini(false); return; }
+        if (miniOn) {
+          if (dy < -6 || y <= 30) setMini(false);
+        } else if (dy > 6 && y > 140) {
+          setMini(true);
+        }
+      }
+      window.addEventListener("scroll", function () {
+        var y = window.scrollY || window.pageYOffset || 0;
+        miniDy += y - miniLastY;
+        miniLastY = y;
+        if (!miniTicking) {
+          miniTicking = true;
+          if (window.requestAnimationFrame) requestAnimationFrame(updateMini);
+          else updateMini();
+        }
+      }, { passive: true });
+      // Tapping the mini-bar expands it — except its own buttons,
+      // which do their own job (and stop propagation besides).
+      playerEl.addEventListener("click", function (ev) {
+        if (!miniOn) return;
+        if (ev.target.closest && ev.target.closest(".mini-btn")) return;
+        setMini(false);
+      });
+      miniPlayBtn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        if (vid.paused || vid.ended) {
+          var p = vid.play();
+          if (p && typeof p.catch === "function") p.catch(function () {});
+        } else {
+          vid.pause();
+        }
+        syncMiniPlay();
+      });
+      miniNextBtn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        next(false);
+      });
+      syncMiniPlay();
 
       /* ---------------- User manual: collapse / expand ----------------
          Everywhere, phones and desktops alike: the manual starts
@@ -1468,6 +1650,7 @@
         currentId = first.id;
         playHistory.push(first.id);
         npTitle.textContent = first.title;
+        miniTitle.textContent = first.title;
         vid.hidden = false;
         vid.src = first.url;
         vid.load();
