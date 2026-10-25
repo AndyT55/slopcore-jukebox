@@ -1260,9 +1260,16 @@
          never pass through playTrack, so they are never counted.
          The call is guarded: if the GoatCounter script hasn't
          loaded yet (slow, or blocked outright) it does nothing,
-         silently — stats must never break playback. */
+         silently — stats must never break playback.
+         It is ALSO guarded by the browser-ignore flag: GoatCounter's
+         own ignore switch (#toggle-goatcounter) suppresses the
+         automatic pageview but NOT manual event calls like this one,
+         so without this check an ignored browser's visits stay hidden
+         while its song plays still count. Checking skipgc here keeps
+         an ignored browser's plays out of the stats too. */
       function countPlay(track) {
         try {
+          if (window.localStorage && window.localStorage.getItem('skipgc') === 't') return;
           if (window.goatcounter && typeof window.goatcounter.count === "function") {
             window.goatcounter.count({
               path: "play/" + archiveId(track),
