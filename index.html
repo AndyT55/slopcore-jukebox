@@ -446,6 +446,21 @@
         color: var(--ink-soft);
         font-family: "IBM Plex Mono", ui-monospace, monospace;
       }
+      .lowbw {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        font-size: 14px;
+        color: var(--ink-soft);
+        cursor: pointer;
+      }
+      .lowbw input {
+        width: 18px; height: 18px;
+        accent-color: var(--accent);
+        cursor: pointer;
+        flex: none;
+      }
 
       /* ---------- Track list ---------- */
       .section-head {
@@ -767,11 +782,13 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
           </div>
+          <label class="lowbw"><input type="checkbox" id="lowBwToggle"> Low bandwidth — play the smaller file for each song</label>
           <div class="manual" id="manual">
             <button class="manual-close" id="manualClose" type="button" aria-label="Hide the user manual" title="Hide the manual">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
             </button>
             <p class="fs-tip">Dark or light: tap the moon / sun button in the top-right corner of the page to switch between dark and light mode. The page remembers your choice for next time.</p>
+            <p class="fs-tip">Slow connection? Tick "Low bandwidth" under the player controls and every song plays its smaller file instead of the full video. If a song has no smaller file, it just plays the full one — the music never stops over a missing file. The page remembers your choice.</p>
           </div>
           <button class="manual-show" id="manualShow" type="button" aria-expanded="false" aria-controls="manual">Manual</button>
         </div>
@@ -858,6 +875,7 @@
       var ORDER_KEY = "slopcore-jukebox-order-v1";
       var THEME_KEY = "slopcore-jukebox-theme";
       var MUTED_KEY = "slopcore-jukebox-muted-v1";
+      var LOWBW_KEY = "slopcore-jukebox-lowbw-v1";
 
       /* ---------------- State ---------------- */
       var byId = {};
@@ -1280,6 +1298,33 @@
         } catch (e) { /* stats are optional — playback carries on regardless */ }
       }
 
+      /* ---------------- Low bandwidth ----------------
+         Archive.org's derive makes a smaller streaming file beside
+         every original, named <name>_512kb.mp4 — same video, far
+         less data. When the visitor ticks the Low bandwidth switch
+         in the player, tracks play that file instead of the full
+         original, and the choice is remembered per device like the
+         theme and the mutes. A missing small file must never stop
+         the music: the video error handler in "Video events" swaps
+         to the full file, so a track plays whether its small file
+         exists or not. */
+      var lowBw = false;
+      try { lowBw = window.localStorage.getItem(LOWBW_KEY) === "1"; } catch (e) {}
+      // True while something is meant to be playing (a track tap,
+      // the native play button, auto-advance). The opening cue and
+      // a manual pause leave it false, so the low-bandwidth
+      // fallback never starts sound uninvited.
+      var wantPlaying = false;
+      function lowBwUrl(track) {
+        return track.url.replace(/\.mp4$/i, "_512kb.mp4");
+      }
+      function streamUrl(track) {
+        return lowBw ? lowBwUrl(track) : track.url;
+      }
+      function saveLowBw() {
+        try { window.localStorage.setItem(LOWBW_KEY, lowBw ? "1" : "0"); } catch (e) { /* storage unavailable — the pick lasts this visit only */ }
+      }
+
       /* ---------------- Playback ----------------
          Every track plays in the one native <video> element with its
          own controls. The page puts nothing over it — it only loads
@@ -1303,7 +1348,7 @@
       function showVideo(track) {
         tapHint.hidden = true;
         vid.hidden = false;
-        vid.src = track.url;
+        vid.src = streamUrl(track);
         vid.load();
         // play() MUST stay synchronous in this call chain. Every path
         // that lands here — a list-row click, Prev, Next — runs inside
@@ -1313,6 +1358,7 @@
         // browser's transient user activation expire on slow
         // connections, and play() then rejects with NotAllowedError:
         // the tap looks dead even though the file streams fine.
+        wantPlaying = true;
         var p = vid.play();
         if (p && typeof p.catch === "function") {
           p.catch(function (err) {
@@ -1417,9 +1463,31 @@
          next track (shuffle-aware, via next()). Play/pause just
          refresh the list's playing indicator. Seeking and pausing
          are the native controls' business. */
-      vid.addEventListener("ended", function () { playing = false; syncMiniPlay(); next(true); });
-      vid.addEventListener("play", function () { playing = true; tapHint.hidden = true; syncMiniPlay(); markActiveRow(); });
-      vid.addEventListener("pause", function () { playing = false; syncMiniPlay(); markActiveRow(); });
+      vid.addEventListener("ended", function () { playing = false; wantPlaying = false; syncMiniPlay(); next(true); });
+      vid.addEventListener("play", function () { playing = true; wantPlaying = true; tapHint.hidden = true; syncMiniPlay(); markActiveRow(); });
+      vid.addEventListener("pause", function () { playing = false; wantPlaying = false; syncMiniPlay(); markActiveRow(); });
+      // Low-bandwidth fallback: a missing small file must never
+      // leave a dead player. Whatever path loaded it — opening
+      // cue, track change, switch toggle — swap to the full file
+      // once. After the swap the source no longer ends in
+      // _512kb.mp4, so a second error can't loop. Resume only if
+      // something was actually playing: the opening cue stays
+      // paused and quiet.
+      vid.addEventListener("error", function () {
+        if (!lowBw) return;
+        var src = vid.getAttribute("src") || "";
+        if (src.indexOf("_512kb.mp4") === -1) return;
+        vid.src = src.replace("_512kb.mp4", ".mp4");
+        vid.load();
+        if (wantPlaying) {
+          var p = vid.play();
+          if (p && typeof p.catch === "function") {
+            p.catch(function (err) {
+              if (err && err.name === "NotAllowedError") tapHint.hidden = false;
+            });
+          }
+        }
+      });
 
       /* ---------------- Controls ----------------
          Prev / Next / Shuffle plus the fullscreen button —
@@ -1431,6 +1499,41 @@
         shuffleBtn.classList.toggle("on", shuffle);
         shuffleBtn.setAttribute("aria-pressed", shuffle ? "true" : "false");
         shuffleState.textContent = shuffle ? "Shuffle on" : "Shuffle off";
+      });
+
+      /* ---------------- Low bandwidth switch ----------------
+         Ticking it swaps the current song's source in place —
+         small file when on, full file when off — keeping the
+         playback position, and remembers the pick per device.
+         If the small file is missing, the video error handler
+         above falls back to the full file, so the song plays
+         either way. */
+      var lowBwToggle = document.getElementById("lowBwToggle");
+      lowBwToggle.checked = lowBw;
+      lowBwToggle.addEventListener("change", function () {
+        lowBw = lowBwToggle.checked;
+        saveLowBw();
+        if (currentId !== null && byId[currentId]) {
+          var t = byId[currentId];
+          var wasPaused = vid.paused;
+          var pos = vid.currentTime || 0;
+          wantPlaying = !wasPaused;
+          vid.src = streamUrl(t);
+          vid.load();
+          var onMeta = function () {
+            vid.removeEventListener("loadedmetadata", onMeta);
+            try { if (pos > 0 && pos < vid.duration) vid.currentTime = pos; } catch (e) {}
+            if (!wasPaused) {
+              var p = vid.play();
+              if (p && typeof p.catch === "function") {
+                p.catch(function (err) {
+                  if (err && err.name === "NotAllowedError") tapHint.hidden = false;
+                });
+              }
+            }
+          };
+          vid.addEventListener("loadedmetadata", onMeta);
+        }
       });
 
       /* ---------------- In-page fullscreen (the fullscreen icon button) ----------------
@@ -1686,7 +1789,7 @@
         npTitle.textContent = first.title;
         miniTitle.textContent = first.title;
         vid.hidden = false;
-        vid.src = first.url;
+        vid.src = streamUrl(first);
         vid.load();
         markActiveRow();
       }
