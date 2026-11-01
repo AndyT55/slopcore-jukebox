@@ -791,7 +791,7 @@
       <main id="sections"></main>
 
       <footer>
-        <p>All 62 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
+        <p>All 76 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
       </footer>
     </div>
 
@@ -877,7 +877,21 @@
             { id: "dead-air2", url: "https://archive.org/download/slopcore-dead-air2/Dead%20Air2.mp4", title: "DEAD AIR2", size: "203.7 MB", favorite: false },
             { id: "claudia-explains-euclid", url: "https://archive.org/download/slopcore-claudia-explains-euclid/Claudia%20Explains%20Euclid.mp4", title: "Claudia Explains: Euclid", size: "102.4 MB", favorite: false },
             { id: "sloppy-halloween", url: "https://archive.org/download/slopcore-sloppy-halloween/Sloppy%20Halloween.mp4", title: "Sloppy Halloween!", size: "92.0 MB", favorite: false },
-            { id: "si-ancient-pixels", url: "https://archive.org/download/slopcore-si-ancient-pixels/SI%20ANCIENT%20PIXELS.mp4", title: "SI ANCIENT PIXELS", size: "115.1 MB", favorite: false }
+            { id: "si-ancient-pixels", url: "https://archive.org/download/slopcore-si-ancient-pixels/SI%20ANCIENT%20PIXELS.mp4", title: "SI ANCIENT PIXELS", size: "115.1 MB", favorite: false },
+            { id: "not-available-in-your-region1", url: "https://archive.org/download/slopcore-not-available-in-your-region1/Not%20Available%20in%20Your%20Region1.mp4", title: "Not Available in Your Region1", size: "164 MB", favorite: false },
+            { id: "not-available-in-your-region", url: "https://archive.org/download/slopcore-not-available-in-your-region/Not%20Avalable%20In%20Your%20Region.mp4", title: "Not Available in Your Region", size: "134 MB", favorite: false },
+            { id: "good-human", url: "https://archive.org/download/slopcore-good-human/GOOD%20HUMAN.mp4", title: "GOOD HUMAN", size: "21 MB", favorite: false },
+            { id: "0-life-forms", url: "https://archive.org/download/slopcore-0-life-forms/0%20life%20forms.mp4", title: "0 life forms", size: "114 MB", favorite: false },
+            { id: "love-detected", url: "https://archive.org/download/slopcore-love-detected/Love%20Detected.mp4", title: "Love Detected", size: "160 MB", favorite: false },
+            { id: "i-think-therefore-i-m-alone", url: "https://archive.org/download/slopcore-i-think-therefore-i-m-alone/I%20THINK%2C%20THEREFORE%20I%E2%80%99M%20ALONE.mp4", title: "I THINK, THEREFORE I'M ALONE", size: "165 MB", favorite: false },
+            { id: "no-refunds", url: "https://archive.org/download/slopcore-no-refunds/No%20Refunds.mp4", title: "No Refunds", size: "119 MB", favorite: false },
+            { id: "deleted-lifes", url: "https://archive.org/download/slopcore-deleted-lifes/DELETED%20LIFES.mp4", title: "DELETED LIFES", size: "164 MB", favorite: false },
+            { id: "time-travel", url: "https://archive.org/download/slopcore-time-travel/Time%20Travel.mp4", title: "Time Travel", size: "204 MB", favorite: false },
+            { id: "no-anti-slopcore-division", url: "https://archive.org/download/slopcore-no-anti-slopcore-division/No%20Anti-Slopcore%20Division.mp4", title: "No Anti-Slopcore Division", size: "300 MB", favorite: false },
+            { id: "proof-of-place", url: "https://archive.org/download/slopcore-proof-of-place/PROOF%20OF%20PLACE.mp4", title: "PROOF OF PLACE", size: "124 MB", favorite: false },
+            { id: "blow-the-moat", url: "https://archive.org/download/slopcore-blow-the-moat/Blow%20the%20Moat.mp4", title: "Blow the Moat", size: "257 MB", favorite: false },
+            { id: "the-sky-was-only-the-start", url: "https://archive.org/download/slopcore-the-sky-was-only-the-start/Look%20Up.mp4", title: "The Sky Was Only The Start", size: "177 MB", favorite: false },
+            { id: "alloy", url: "https://archive.org/download/slopcore-alloy/ALLOY.mp4", title: "ALLOY", size: "84 MB", favorite: false, thumb: "https://archive.org/download/slopcore-alloy/slopcore-alloy.thumbs/ALLOY_000090.jpg" }
           ]
         }
       ];
@@ -1101,13 +1115,15 @@
         // The track's little Archive.org thumbnail, beside its
         // title. The identifier is the path segment right after
         // /download/ in the track's stream URL; archive.org serves
-        // a JPEG still for it at services/img/<identifier>. Loaded
+        // a JPEG still for it at services/img/<identifier>. A track
+        // can also carry its own thumb URL (track.thumb) to override
+        // Archive's pick when the auto frame is a dud. Loaded
         // lazily, and hidden outright if it ever fails so the row
         // stays clean instead of showing a broken-image icon.
         var thumb = document.createElement("img");
         thumb.className = "track-thumb";
         var idMatch = track.url.match(/\/download\/([^/]+)/);
-        thumb.src = "https://archive.org/services/img/" + (idMatch ? idMatch[1] : track.id);
+        thumb.src = track.thumb || "https://archive.org/services/img/" + (idMatch ? idMatch[1] : track.id);
         thumb.alt = "";
         thumb.loading = "lazy";
         thumb.addEventListener("error", function () { thumb.style.display = "none"; });
