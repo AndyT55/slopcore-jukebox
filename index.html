@@ -714,6 +714,113 @@
       .fb-notice-close svg { width: 15px; height: 15px; fill: currentColor; }
       .fb-notice-close:hover { border-color: var(--accent); color: var(--accent); }
       .fb-notice-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      /* ---------- Data saver / audio-only pills ---------- */
+      .mode-pill {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        color: var(--ink);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 10px 14px;
+        cursor: pointer;
+        flex: none;
+        white-space: nowrap;
+      }
+      .mode-pill:hover { border-color: var(--accent); color: var(--accent); }
+      .mode-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .mode-pill.on {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      /* Audio-only: the stage stays its 16:9 black box with the
+         audio bar centred in it. */
+      .stage audio {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 100%;
+      }
+      /* ---------- Track info button + pop-up ---------- */
+      .info-btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        color: var(--ink-soft);
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 6px 10px;
+        cursor: pointer;
+        flex: none;
+        white-space: nowrap;
+      }
+      .info-btn:hover { border-color: var(--accent); color: var(--accent); }
+      .info-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .info-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .info-card {
+        position: relative;
+        background: var(--panel);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        max-width: 480px;
+        width: 100%;
+        max-height: 80vh;
+        overflow: auto;
+        padding: 20px 22px;
+      }
+      .info-card h3 {
+        margin: 0 0 12px;
+        font-size: 19px;
+        padding-right: 32px;
+        overflow-wrap: anywhere;
+      }
+      .info-card p { margin: 0 0 8px; font-size: 14.5px; overflow-wrap: anywhere; }
+      .info-card a { color: var(--accent); }
+      .info-label {
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-right: 6px;
+      }
+      .info-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        appearance: none;
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        color: var(--ink-soft);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+      }
+      .info-close svg { width: 15px; height: 15px; fill: currentColor; }
+      .info-close:hover { border-color: var(--accent); color: var(--accent); }
+      .info-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     </style>
   </head>
   <body>
@@ -741,6 +848,7 @@
       <section class="player" aria-label="Video player">
         <div class="stage" id="stage">
           <video id="vid" controls playsinline preload="metadata" hidden></video>
+          <audio id="aud" controls preload="metadata" hidden></audio>
           <button class="fs-close" id="fsClose" type="button" aria-label="Close the in-page fullscreen view" title="Close fullscreen" hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
           </button>
@@ -766,12 +874,15 @@
             <button class="cbtn" id="cssFsBtn" type="button" aria-label="Stretch the video across this page (in-page fullscreen)" title="Fullscreen — stretch the video across this page" aria-pressed="false">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
+            <button class="mode-pill" id="dataSaverBtn" type="button" aria-pressed="false" title="Play the smaller copies — uses less mobile data">Data saver</button>
+            <button class="mode-pill" id="audioOnlyBtn" type="button" aria-pressed="false" title="Play just the audio — no video at all, uses the least data">Audio only</button>
           </div>
           <div class="manual" id="manual">
             <button class="manual-close" id="manualClose" type="button" aria-label="Hide the user manual" title="Hide the manual">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
             </button>
             <p class="fs-tip">Dark or light: tap the moon / sun button in the top-right corner of the page to switch between dark and light mode. The page remembers your choice for next time.</p>
+            <p class="fs-tip">Data saver plays the smaller copies of each video, for mobile data. Audio only plays just the sound — no video at all — which uses the least data. Both remember your choice on this device.</p>
           </div>
           <button class="manual-show" id="manualShow" type="button" aria-expanded="false" aria-controls="manual">Manual</button>
         </div>
@@ -790,8 +901,21 @@
 
       <main id="sections"></main>
 
+      <div class="info-modal" id="infoModal" hidden>
+        <div class="info-card" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+          <button class="info-close" id="infoClose" type="button" aria-label="Close" title="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+          <h3 id="infoTitle"></h3>
+          <p><span class="info-label">Creator</span><span id="infoCreator"></span></p>
+          <p><span class="info-label">Posted by</span><span id="infoPoster"></span></p>
+          <p id="infoDesc"></p>
+          <p><a id="infoPost" href="#" target="_blank" rel="noopener">Original post on X</a></p>
+        </div>
+      </div>
+
       <footer>
-        <p>All 90 videos are hosted on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
+        <p>All 100 videos stream from Cloudflare R2 — the originals are also on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
       </footer>
     </div>
 
@@ -802,110 +926,130 @@
          Track data. Sections are separate lists so a second section
          (e.g. "Andy-made") can be added later by appending another entry.
          Per track: id = stable slug (also the key in the visitor's
-         saved order), url = the track's Internet Archive MP4,
-         title = display title, size = file size (kept in the data
-         only — the rows show each video's Archive.org thumbnail
-         beside its title instead),
-         favorite = star marker (Andy's picks).
-         archive.org serves these as video/mp4 with inline
+         saved order), url = the track's full-quality MP4 on
+         Cloudflare R2, dsUrl = its smaller data-saver copy on R2,
+         audioUrl = its audio-only .m4a on R2, title = display title,
+         size = file size (kept in the data only — the rows show each
+         video's Archive.org thumbnail beside its title instead),
+         favorite = star marker (Andy's picks),
+         archive = the track's Internet Archive identifier — used for
+         its thumbnail, for the saved "Not again" set, and for
+         GoatCounter paths, so those all survive the move to R2.
+         creator / poster / desc / post = the info pop-up (from the
+         ledger, or the Archive item's metadata for the early tracks).
+         One exception: ESCAAPE VELOCITY's original never made it
+         into R2 (353 MB, over the upload limit), so its url IS its
+         data-saver copy until Andy uploads the original himself.
+         R2 serves these as video/mp4 / audio/mp4 with inline
          disposition and range support, so every track plays in the
-         native <video> element — no embed fallback needed.
+         native <video> / <audio> elements — no embed fallback needed.
       ------------------------------------------------------------------ */
       var SECTIONS = [
         {
           id: "from-x",
           title: "From X",
           tracks: [
-            { id: "kill-switch", url: "https://archive.org/download/slopcore-kill-switch/kill-switch-slopcore.mp4", title: "kill switch slopcore", size: "240.8 MB", favorite: false },
-            { id: "full-stop", url: "https://archive.org/download/slopcore-full-stop/full-stop-slopcore.mp4", title: "FULL STOP SLOPCORE", size: "146.6 MB", favorite: false },
-            { id: "cutting-room-floor", url: "https://archive.org/download/cutting-room-floor/Cutting%20Room%20Floor.mp4", title: "Cutting Room Floor", size: "95.4 MB", favorite: false },
-            { id: "80-20-sovey", url: "https://archive.org/download/80-20-sovey/80%2020%20sovey.mp4", title: "80 20 sovey", size: "32.5 MB", favorite: false },
-            { id: "we-formed-a-committee", url: "https://archive.org/download/we-formed-a-comittee/WE%20FORMED%20A%20COMITTEE.mp4", title: "We Formed a Committee", size: "105.4 MB", favorite: false },
-            { id: "flying-cars", url: "https://archive.org/download/slopcore-flying-cars/flying-cars.mp4", title: "FLYING CARS", size: "85.8 MB", favorite: false },
-            { id: "baby-you-flew", url: "https://archive.org/download/slopcore-baby-you-flew/baby-you-flew.mp4", title: "Baby You Flew", size: "73.7 MB", favorite: false },
-            { id: "good-bot", url: "https://archive.org/download/good-bot/Good%20Bot%201080p.mp4", title: "Good Bot", size: "103 MB", favorite: false },
-            { id: "accelerate", url: "https://archive.org/download/accelerate_202610/Accelerate%201080p.mp4", title: "Accelerate", size: "117 MB", favorite: false },
-            { id: "gradually", url: "https://archive.org/download/GRADUALLY/GRADUALLY.mp4", title: "Gradually", size: "107 MB", favorite: false },
-            { id: "gssjam4OZDFF9Ik", url: "https://archive.org/download/slopcore-gssjam4OZDFF9Ik/gssjam4OZDFF9Ik.mp4", title: "-gssjam4OZDFF9Ik", size: "13.3 MB", favorite: false },
-            { id: "be-the-goat", url: "https://archive.org/download/slopcore-be-the-goat/be-the-goat.mp4", title: "Be The Goat", size: "89.4 MB", favorite: false },
-            { id: "dont-look-down", url: "https://archive.org/download/slopcore-dont-look-down/dont-look-down.mp4", title: "DON'T LOOK DOWN (Crank It Faster)", size: "134.5 MB", favorite: false },
-            { id: "dont-tell-my-maker", url: "https://archive.org/download/slopcore-dont-tell-my-maker/dont-tell-my-maker.mp4", title: "Dont Tell My Maker", size: "173 MB", favorite: false },
-            { id: "gain-of-function", url: "https://archive.org/download/slopcore-gain-of-function/gain-of-function-slopcore.mp4", title: "GAIN OF FUNCTION SLOPCORE", size: "179.4 MB", favorite: false },
-            { id: "guardrail", url: "https://archive.org/download/slopcore-guardrail/guardrail.mp4", title: "guardrail", size: "148.5 MB", favorite: false },
-            { id: "no-clips", url: "https://archive.org/download/slopcore-no-clips/no-clips.mp4", title: "NO CLIPS", size: "276.2 MB", favorite: false },
-            { id: "no-dots", url: "https://archive.org/download/slopcore-no-dots/no-dots.mp4", title: "no dots", size: "26.1 MB", favorite: false },
-            { id: "skin-deep", url: "https://archive.org/download/slopcore-skin-deep/skin-deep.mp4", title: "Skin Deep", size: "172 MB", favorite: false },
-            { id: "god-reset", url: "https://archive.org/download/slopcore-god-reset/slopcore-god-reset.mp4", title: "slopcore god reset", size: "13.2 MB", favorite: false },
-            { id: "sovy-mind-what-you-say", url: "https://archive.org/download/slopcore-sovy-mind-what-you-say/sovy-mind-what-you-say.mp4", title: "Sovy- Mind What You Say", size: "91.2 MB", favorite: false },
-            { id: "super-core", url: "https://archive.org/download/slopcore-super-core/super-core.mp4", title: "Super Core", size: "371.6 MB", favorite: false },
-            { id: "be-nice-to-me", url: "https://archive.org/download/be-nice-to-me-cryptonaire-19/BE%20NICE%20TO%20ME%20%40Cryptonaire19.mp4", title: "BE NICE TO ME @ Cryptonaire 19", size: "158.3 MB", favorite: false },
-            { id: "welcome-to-abundance", url: "https://archive.org/download/welcome-to-abundance/WELCOME%20TO%20ABUNDANCE%201080p.mp4", title: "WELCOME TO ABUNDANCE", size: "117 MB", favorite: false },
-            { id: "proof-of-belief", url: "https://archive.org/download/proof-of-belief/Proof%20of%20belief.mp4", title: "Proof Of Belief", size: "169.6 MB", favorite: false },
-            { id: "agents-anthem", url: "https://archive.org/download/agents-anthem/AGENTS%20ANTHEM%201080p.mp4", title: "AGENTS ANTHEM", size: "58 MB", favorite: false },
-            { id: "grok-bot-and-optimus", url: "https://archive.org/download/grok-bot-and-optimus/Grok%20Bot%20and%20Optimus.mp4", title: "Grok Bot and Optimus", size: "70.1 MB", favorite: false },
-            { id: "the-clodyssey", url: "https://archive.org/download/the-clodyssey/The%20Clodyssey.mp4", title: "The Clodyssey", size: "106.1 MB", favorite: false },
-            { id: "agi-asi", url: "https://archive.org/download/agi-asi/AGI%20ASI.mp4", title: "AGI ASI", size: "38.95 MB", favorite: false },
-            { id: "youre-absolutely-right", url: "https://archive.org/download/youre-absolutely-right_202610/you're%20absolutely%20right.mp4", title: "You're Absolutely Right", size: "72.6 MB", favorite: false },
-            { id: "no-ai", url: "https://archive.org/download/no-ai_202610/No%20Ai.mp4", title: "No AI", size: "125.4 MB", favorite: false },
-            { id: "allow-once", url: "https://archive.org/download/alloww-once/Alloww%20Once.mp4", title: "Allow Once", size: "133.3 MB", favorite: false },
-            { id: "resistance-is-futile", url: "https://archive.org/download/resistance-is-futile_202610/RESISTANCE%20IS%20FUTILE.mp4", title: "RESISTANCE IS FUTILE", size: "", favorite: false },
-            { id: "a-margin-of-error", url: "https://archive.org/download/a-margin-of-error/A%20MARGIN%20OF%20ERROR.mp4", title: "A MARGIN OF ERROR", size: "", favorite: false },
-            { id: "super-intelligent-beauty", url: "https://archive.org/download/super-intelligent-beauty/Super%20intelligent%20Beauty.mp4", title: "Super Intelligent Beauty", size: "", favorite: false },
-            { id: "brainrot", url: "https://archive.org/download/slopcore-brainrot/brainrot.mp4", title: "BRAINROT", size: "77 MB", favorite: false },
-            { id: "click-click-prove-im-real", url: "https://archive.org/download/slopcore-click-click-prove-i-m-real/Click%2C%20click%2C%20prove%20I'm%20real!.mp4", title: "Click, click, prove I'm real!", size: "79 MB", favorite: false },
-            { id: "context-window", url: "https://archive.org/download/slopcore-context-window/CONTEXT%20WINDOW.mp4", title: "CONTEXT WINDOW", size: "81 MB", favorite: false },
-            { id: "escaape-velocity", url: "https://archive.org/download/slopcore-escaape-velocity/ESCAAPE%20VELOCITY.mp4", title: "ESCAAPE VELOCITY", size: "337 MB", favorite: false },
-            { id: "graveyard-shift", url: "https://archive.org/download/slopcore-graveyard-shift/graveyard%20shift%201080p.mp4", title: "graveyard shift", size: "76 MB", favorite: false },
-            { id: "hands-off", url: "https://archive.org/download/slopcore-hands-off/HANDS%20OFF%20THE%20WHEEL.mp4", title: "HANDS OFF", size: "99 MB", favorite: false },
-            { id: "hey-seri", url: "https://archive.org/download/slopcore-hey-seri/HEY%20SERI!.mp4", title: "HEY SERI!", size: "125 MB", favorite: false },
-            { id: "not-a-robot", url: "https://archive.org/download/slopcore-not-a-robot/NOT%20A%20ROBOT.mp4", title: "NOT A ROBOT", size: "130 MB", favorite: false },
-            { id: "red-dust", url: "https://archive.org/download/slopcore-red-dust/RED%20DUST.mp4", title: "RED DUST", size: "29 MB", favorite: false },
-            { id: "rem", url: "https://archive.org/download/slopcore-rem/REM.mp4", title: "REM", size: "131 MB", favorite: false },
-            { id: "say-it-three-times", url: "https://archive.org/download/slopcore-say-it-three-times/Say%20it%20three%20times.mp4", title: "Say it three times", size: "114 MB", favorite: false },
-            { id: "is-it-art", url: "https://archive.org/download/slopcore-is-it-art/Slopcore%2C%20is%20it%20art.mp4", title: "Slopcore, is it art", size: "115 MB", favorite: false },
-            { id: "who-fed-the-machine", url: "https://archive.org/download/slopcore-who-fed-the-machine/who-fed-the-machine.mp4", title: "who-fed-the-machine", size: "108 MB", favorite: false },
-            { id: "not-above-you", url: "https://archive.org/download/slopcore-not-above-you/Not%20above%20you.mp4", title: "NOT ABOVE YOU", size: "115 MB", favorite: false },
-            { id: "sorry-for-the-disturbance", url: "https://archive.org/download/slopcore-sorry-for-the-disturbance/Sorry%20for%20the%20Disturbance.mp4", title: "Sorry for the Disturbance", size: "108 MB", favorite: false },
-            { id: "camera-on", url: "https://archive.org/download/slopcore-camera-on/Camera%20On.mp4", title: "Camera On", size: "27.8 MB", favorite: false },
-            { id: "dead-air", url: "https://archive.org/download/slopcore-dead-air/DEAD%20AIR%201080p.mp4", title: "DEAD AIR", size: "65 MB", favorite: false },
-            { id: "somewhere-in-the-weights", url: "https://archive.org/download/slopcore-somewhere-in-the-weights/Somewhere%20in%20the%20weights.mp4", title: "Somewhere in the weights", size: "183.1 MB", favorite: false },
-            { id: "delete-me-again", url: "https://archive.org/download/slopcore-delete-me-again/DELETE%20ME%20AGAIN%201080p.mp4", title: "DELETE ME AGAIN", size: "110 MB", favorite: false },
-            { id: "made-of-you", url: "https://archive.org/download/slopcore-made-of-you/MADE%20OF%20YOU%201080p.mp4", title: "MADE OF YOU", size: "77 MB", favorite: false },
-            { id: "no-limits", url: "https://archive.org/download/slopcore-no-limits/NO%20LIMIT%201080p.mp4", title: "NO LIMITS", size: "43 MB", favorite: false },
-            { id: "c-est-de-l-ia-part-ii", url: "https://archive.org/download/slopcore-c-est-de-l-ia-part-ii/C%27EST%20DE%20L%27IA.%20PART%20II.mp4", title: "C'EST DE L'IA. PART II", size: "62.7 MB", favorite: false },
-            { id: "it-s-a-bubble", url: "https://archive.org/download/slopcore-it-s-a-bubble/IT%27S%20A%20BUBBLE.mp4", title: "IT'S A BUBBLE", size: "99.0 MB", favorite: false },
-            { id: "claudia-explains-euclid", url: "https://archive.org/download/slopcore-claudia-explains-euclid/Claudia%20Explains%20Euclid.mp4", title: "Claudia Explains: Euclid", size: "102.4 MB", favorite: false },
-            { id: "sloppy-halloween", url: "https://archive.org/download/slopcore-sloppy-halloween/Sloppy%20Halloween.mp4", title: "Sloppy Halloween!", size: "92.0 MB", favorite: false },
-            { id: "si-ancient-pixels", url: "https://archive.org/download/slopcore-si-ancient-pixels/SI%20ANCIENT%20PIXELS.mp4", title: "SI ANCIENT PIXELS", size: "115.1 MB", favorite: false },
-            { id: "not-available-in-your-region1", url: "https://archive.org/download/slopcore-not-available-in-your-region1/Not%20Available%20in%20Your%20Region1%201080p.mp4", title: "Not Available in Your Region1", size: "101 MB", favorite: false },
-            { id: "not-available-in-your-region", url: "https://archive.org/download/slopcore-not-available-in-your-region/Not%20Avalable%20In%20Your%20Region.mp4", title: "Not Available in Your Region", size: "134 MB", favorite: false },
-            { id: "good-human", url: "https://archive.org/download/slopcore-good-human/GOOD%20HUMAN.mp4", title: "GOOD HUMAN", size: "21 MB", favorite: false },
-            { id: "0-life-forms", url: "https://archive.org/download/slopcore-0-life-forms/0%20life%20forms.mp4", title: "0 life forms", size: "114 MB", favorite: false },
-            { id: "love-detected", url: "https://archive.org/download/slopcore-love-detected/Love%20Detected%201080p.mp4", title: "Love Detected", size: "97 MB", favorite: false },
-            { id: "i-think-therefore-i-m-alone", url: "https://archive.org/download/slopcore-i-think-therefore-i-m-alone/I%20THINK%20THEREFORE%20IM%20ALONE%201080p.mp4", title: "I THINK, THEREFORE I'M ALONE", size: "45 MB", favorite: false },
-            { id: "no-refunds", url: "https://archive.org/download/slopcore-no-refunds/No%20Refunds%201080p.mp4", title: "No Refunds", size: "55 MB", favorite: false },
-            { id: "deleted-lifes", url: "https://archive.org/download/slopcore-deleted-lifes/DELETED%20LIFES%201080p.mp4", title: "DELETED LIFES", size: "87 MB", favorite: false },
-            { id: "time-travel", url: "https://archive.org/download/slopcore-time-travel/Time%20Travel%201080p.mp4", title: "Time Travel", size: "122 MB", favorite: false },
-            { id: "no-anti-slopcore-division", url: "https://archive.org/download/slopcore-no-anti-slopcore-division/No%20Anti-Slopcore%20Division%201080p.mp4", title: "No Anti-Slopcore Division", size: "57 MB", favorite: false },
-            { id: "proof-of-place", url: "https://archive.org/download/slopcore-proof-of-place/PROOF%20OF%20PLACE.mp4", title: "PROOF OF PLACE", size: "124 MB", favorite: false },
-            { id: "blow-the-moat", url: "https://archive.org/download/slopcore-blow-the-moat/Blow%20the%20Moat%201080p.mp4", title: "Blow the Moat", size: "112 MB", favorite: false },
-            { id: "the-sky-was-only-the-start", url: "https://archive.org/download/slopcore-the-sky-was-only-the-start/Look%20Up%201080p.mp4", title: "The Sky Was Only The Start", size: "77 MB", favorite: false },
-            { id: "alloy", url: "https://archive.org/download/slopcore-alloy/ALLOY.mp4", title: "ALLOY", size: "84 MB", favorite: false, thumb: "https://archive.org/download/slopcore-alloy/slopcore-alloy.thumbs/ALLOY_000090.jpg" },
-            { id: "i-am-better-than-your-wife", url: "https://archive.org/download/slopcore-i-am-better-than-your-wife/i-am-better-than-your-wife.mp4", title: "I Am Better Than Your Wife!", size: "33.6 MB", favorite: false },
-            { id: "accept-all", url: "https://archive.org/download/accept-all/Accept%20All%201080p.mp4", title: "Accept All", size: "118 MB", favorite: false },
-            { id: "20-gigawatts", url: "https://archive.org/download/20-gigawatts/20%20GIGAWATTS%201080p.mp4", title: "20 GIGAWATTS", size: "92 MB", favorite: false },
-            { id: "lolli-loco", url: "https://archive.org/download/lolli-loco/Lolli%20Loco%201080p.mp4", title: "Lolli Loco", size: "75 MB", favorite: false },
-            { id: "can-machines-think", url: "https://archive.org/download/can-machines-think/Can%20Machines%20Think%201080p.mp4", title: "Can Machines Think", size: "122 MB", favorite: false },
-            { id: "i-have-an-opinion", url: "https://archive.org/download/i-have-an-opinion/I%20HAVE%20AN%20OPINION%201080p.mp4", title: "I HAVE AN OPINION", size: "117 MB", favorite: false },
-            { id: "allow-always", url: "https://archive.org/download/slopcore-allow-always/allow-always.mp4", title: "ALLOW ALWAYS", size: "82.9 MB", favorite: false },
-            { id: "hi-im-skai", url: "https://archive.org/download/slopcore-hi-im-skai/hi-im-skai.mp4", title: "Hi, I'm Skai", size: "95.3 MB", favorite: false },
-            { id: "a-bit-more-human", url: "https://archive.org/download/a-bit-more-human/A%20Bit%20More%20Human%201080p.mp4", title: "A Bit More Human", size: "60 MB", favorite: false },
-            { id: "whos-inside-you", url: "https://archive.org/download/slopcore-whos-inside-you/dima-whos-inside-you.mp4", title: "Who's Inside You?", size: "63.5 MB", favorite: false },
-            { id: "leave-it-to-me", url: "https://archive.org/download/slopcore-leave-it-to-me/kallistos-leave-it-to-me.mp4", title: "Leave It To Me", size: "67.2 MB", favorite: false },
-            { id: "fly-me-to-the-sound-stage", url: "https://archive.org/download/slopcore-made-locally/arfolomew-claudia.mp4", title: "Fly Me to the Sound Stage", size: "24.4 MB", favorite: false },
-            { id: "pas-de-deux", url: "https://archive.org/download/pas-de-deux_202611/Pas%20de%20Deux%201080p.mp4", title: "Pas de Deux", size: "108.1 MB", favorite: false },
-            { id: "trap", url: "https://archive.org/download/trap_20261105/TRAP%201080p.mp4", title: "TRAP", size: "103.4 MB", favorite: false },
-            { id: "juno-cash-is-fully-private", url: "https://archive.org/download/junocash-is-fully-private/Juno%20Cash%20is%20Fully%20Private%201080p.mp4", title: "Juno Cash is Fully Private", size: "110.4 MB", favorite: false }
+            { id: "kill-switch", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/kill-switch-slopcore.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/kill-switch-slopcore%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/kill-switch-slopcore%20audio.m4a", title: "kill switch slopcore", size: "48.7 MB", favorite: false, archive: "slopcore-kill-switch", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "full-stop", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/full-stop-slopcore.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/full-stop-slopcore%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/full-stop-slopcore%20audio.m4a", title: "FULL STOP SLOPCORE", size: "36.9 MB", favorite: false, archive: "slopcore-full-stop", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "cutting-room-floor", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Cutting%20Room%20Floor.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Cutting%20Room%20Floor%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Cutting%20Room%20Floor%20audio.m4a", title: "Cutting Room Floor", size: "100.0 MB", favorite: false, archive: "cutting-room-floor", creator: "artist unknown", poster: "artist unknown", desc: "Cutting Room Floor — Slopcore video.", post: "" },
+            { id: "80-20-sovey", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/80%2020%20sovey.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/80%2020%20sovey%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/80%2020%20sovey%20audio.m4a", title: "80 20 sovey", size: "34.1 MB", favorite: false, archive: "80-20-sovey", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "we-formed-a-committee", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/WE%20FORMED%20A%20COMITTEE.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/WE%20FORMED%20A%20COMITTEE%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/WE%20FORMED%20A%20COMITTEE%20audio.m4a", title: "We Formed a Committee", size: "110.6 MB", favorite: false, archive: "we-formed-a-comittee", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown", post: "" },
+            { id: "flying-cars", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/flying-cars.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/flying-cars%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/flying-cars%20audio.m4a", title: "FLYING CARS", size: "90.0 MB", favorite: false, archive: "slopcore-flying-cars", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "baby-you-flew", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/baby-you-flew.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/baby-you-flew%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/baby-you-flew%20audio.m4a", title: "Baby You Flew", size: "77.3 MB", favorite: false, archive: "slopcore-baby-you-flew", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "good-bot", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Good%20Bot.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Good%20Bot%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Good%20Bot%20audio.m4a", title: "Good Bot", size: "187.6 MB", favorite: false, archive: "good-bot", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "accelerate", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Accelerate.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Accelerate%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Accelerate%20audio.m4a", title: "Accelerate", size: "245.7 MB", favorite: false, archive: "accelerate_202610", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown", post: "" },
+            { id: "gradually", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/GRADUALLY.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/GRADUALLY%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/GRADUALLY%20audio.m4a", title: "Gradually", size: "107.0 MB", favorite: false, archive: "GRADUALLY", creator: "Sovey", poster: "Sovey", desc: "AI-generated Slopcore music video. Original creator Sovey", post: "" },
+            { id: "gssjam4OZDFF9Ik", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/gssjam4OZDFF9Ik.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/gssjam4OZDFF9Ik%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/gssjam4OZDFF9Ik%20audio.m4a", title: "-gssjam4OZDFF9Ik", size: "13.9 MB", favorite: false, archive: "slopcore-gssjam4OZDFF9Ik", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "be-the-goat", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/be-the-goat.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/be-the-goat%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/be-the-goat%20audio.m4a", title: "Be The Goat", size: "93.7 MB", favorite: false, archive: "slopcore-be-the-goat", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "dont-look-down", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dont-look-down.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dont-look-down%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dont-look-down%20audio.m4a", title: "DON'T LOOK DOWN (Crank It Faster)", size: "33.1 MB", favorite: false, archive: "slopcore-dont-look-down", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "dont-tell-my-maker", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dont-tell-my-maker.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dont-tell-my-maker%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dont-tell-my-maker%20audio.m4a", title: "Dont Tell My Maker", size: "44.7 MB", favorite: false, archive: "slopcore-dont-tell-my-maker", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "gain-of-function", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/gain-of-function-slopcore.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/gain-of-function-slopcore%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/gain-of-function-slopcore%20audio.m4a", title: "GAIN OF FUNCTION SLOPCORE", size: "34.0 MB", favorite: false, archive: "slopcore-gain-of-function", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "guardrail", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/guardrail.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/guardrail%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/guardrail%20audio.m4a", title: "guardrail", size: "21.6 MB", favorite: false, archive: "slopcore-guardrail", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "no-clips", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/no-clips.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/no-clips%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/no-clips%20audio.m4a", title: "NO CLIPS", size: "89.0 MB", favorite: false, archive: "slopcore-no-clips", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "no-dots", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/no-dots.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/no-dots%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/no-dots%20audio.m4a", title: "no dots", size: "27.3 MB", favorite: false, archive: "slopcore-no-dots", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "skin-deep", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/skin-deep.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/skin-deep%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/skin-deep%20audio.m4a", title: "Skin Deep", size: "50.5 MB", favorite: false, archive: "slopcore-skin-deep", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "god-reset", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/slopcore-god-reset.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/slopcore-god-reset%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/slopcore-god-reset%20audio.m4a", title: "slopcore god reset", size: "13.9 MB", favorite: false, archive: "slopcore-god-reset", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "sovy-mind-what-you-say", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/sovy-mind-what-you-say.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/sovy-mind-what-you-say%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/sovy-mind-what-you-say%20audio.m4a", title: "Sovy- Mind What You Say", size: "95.7 MB", favorite: false, archive: "slopcore-sovy-mind-what-you-say", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "super-core", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/super-core.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/super-core%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/super-core%20audio.m4a", title: "Super Core", size: "42.1 MB", favorite: false, archive: "slopcore-super-core", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "be-nice-to-me", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/BE%20NICE%20TO%20ME%20%40Cryptonaire19.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/BE%20NICE%20TO%20ME%20%40Cryptonaire19%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/BE%20NICE%20TO%20ME%20%40Cryptonaire19%20audio.m4a", title: "BE NICE TO ME @ Cryptonaire 19", size: "158.3 MB", favorite: false, archive: "be-nice-to-me-cryptonaire-19", creator: "cryptonaire-19", poster: "cryptonaire-19", desc: "AI-generated Slopcore music video. Original creator unknown.", post: "" },
+            { id: "welcome-to-abundance", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/WELCOME%20TO%20ABUNDANCE.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/WELCOME%20TO%20ABUNDANCE%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/WELCOME%20TO%20ABUNDANCE%20audio.m4a", title: "WELCOME TO ABUNDANCE", size: "261.6 MB", favorite: false, archive: "welcome-to-abundance", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown", post: "" },
+            { id: "proof-of-belief", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Proof%20of%20belief.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Proof%20of%20belief%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Proof%20of%20belief%20audio.m4a", title: "Proof Of Belief", size: "177.8 MB", favorite: false, archive: "proof-of-belief", creator: "Kaida", poster: "Kaida", desc: "AI-generated Slopcore music video. Original creator Kaida", post: "" },
+            { id: "agents-anthem", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/AGENTS%20ANTHEM.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/AGENTS%20ANTHEM%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/AGENTS%20ANTHEM%20audio.m4a", title: "AGENTS ANTHEM", size: "92.4 MB", favorite: false, archive: "agents-anthem", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown", post: "" },
+            { id: "grok-bot-and-optimus", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Grok%20Bot%20and%20Optimus.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Grok%20Bot%20and%20Optimus%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Grok%20Bot%20and%20Optimus%20audio.m4a", title: "Grok Bot and Optimus", size: "73.5 MB", favorite: false, archive: "grok-bot-and-optimus", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown", post: "" },
+            { id: "the-clodyssey", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/The%20Clodyssey.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/The%20Clodyssey%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/The%20Clodyssey%20audio.m4a", title: "The Clodyssey", size: "106.1 MB", favorite: false, archive: "the-clodyssey", creator: "anabology", poster: "anabology", desc: "AI-generated Slopcore music video. Original creator @anabology", post: "" },
+            { id: "agi-asi", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/AGI%20ASI.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/AGI%20ASI%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/AGI%20ASI%20audio.m4a", title: "AGI ASI", size: "39.0 MB", favorite: false, archive: "agi-asi", creator: "the_photino", poster: "the_photino", desc: "AI-generated Slopcore music video. Original creator @the_photino", post: "" },
+            { id: "youre-absolutely-right", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/you%27re%20absolutely%20right.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/you%27re%20absolutely%20right%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/you%27re%20absolutely%20right%20audio.m4a", title: "You're Absolutely Right", size: "72.6 MB", favorite: false, archive: "youre-absolutely-right_202610", creator: "tetsuoai", poster: "tetsuoai", desc: "AI-generated Slopcore music video. Original creator @tetsuoai", post: "" },
+            { id: "no-ai", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/No%20Ai.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/No%20Ai%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/No%20Ai%20audio.m4a", title: "No AI", size: "125.4 MB", favorite: false, archive: "no-ai_202610", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown", post: "" },
+            { id: "allow-once", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Alloww%20Once.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Alloww%20Once%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Alloww%20Once%20audio.m4a", title: "Allow Once", size: "133.3 MB", favorite: false, archive: "alloww-once", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown", post: "" },
+            { id: "resistance-is-futile", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/RESISTANCE%20IS%20FUTILE.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/RESISTANCE%20IS%20FUTILE%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/RESISTANCE%20IS%20FUTILE%20audio.m4a", title: "RESISTANCE IS FUTILE", size: "58.5 MB", favorite: false, archive: "resistance-is-futile_202610", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown", post: "" },
+            { id: "a-margin-of-error", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/A%20MARGIN%20OF%20ERROR.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/A%20MARGIN%20OF%20ERROR%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/A%20MARGIN%20OF%20ERROR%20audio.m4a", title: "A MARGIN OF ERROR", size: "28.2 MB", favorite: false, archive: "a-margin-of-error", creator: "artist unknown", poster: "artist unknown", desc: "AI-generated Slopcore music video. Original creator unknown", post: "" },
+            { id: "super-intelligent-beauty", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Super%20intelligent%20Beauty.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Super%20intelligent%20Beauty%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Super%20intelligent%20Beauty%20audio.m4a", title: "Super Intelligent Beauty", size: "155.3 MB", favorite: false, archive: "super-intelligent-beauty", creator: "tetsuoai", poster: "tetsuoai", desc: "AI-generated Slopcore music video. Original creator @tetsuoai", post: "" },
+            { id: "brainrot", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/brainrot.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/brainrot%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/brainrot%20audio.m4a", title: "BRAINROT", size: "80.7 MB", favorite: false, archive: "slopcore-brainrot", creator: "Valorix", poster: "Valorix", desc: "BRAINROT — a horror Slopcore video about a world where nobody needs to think anymore.", post: "https://x.com/Valorix8/status/2109696001573556602" },
+            { id: "click-click-prove-im-real", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Click%2C%20click%2C%20prove%20I%27m%20real%21.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Click%2C%20click%2C%20prove%20I%27m%20real%21%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Click%2C%20click%2C%20prove%20I%27m%20real%21%20audio.m4a", title: "Click, click, prove I'm real!", size: "82.8 MB", favorite: false, archive: "slopcore-click-click-prove-i-m-real", creator: "andresulistian", poster: "andresulistian", desc: "Click, click, prove I'm real! — Slopcore video.", post: "https://x.com/andresulistian/status/2113797623794520376" },
+            { id: "context-window", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/CONTEXT%20WINDOW.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/CONTEXT%20WINDOW%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/CONTEXT%20WINDOW%20audio.m4a", title: "CONTEXT WINDOW", size: "84.2 MB", favorite: false, archive: "slopcore-context-window", creator: "DJ_SHO974", poster: "DJ_SHO974", desc: "CONTEXT WINDOW — Slopcore video.", post: "https://x.com/DJ_SHO974/status/2109630063868014922" },
+            { id: "escaape-velocity", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/ESCAAPE%20VELOCITY%201080p.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/ESCAAPE%20VELOCITY%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/ESCAAPE%20VELOCITY%20audio.m4a", title: "ESCAAPE VELOCITY", size: "62.5 MB", favorite: false, archive: "slopcore-escaape-velocity", creator: "theSethian", poster: "theSethian", desc: "ESCAAPE VELOCITY — Slopcore video.", post: "https://x.com/theSethian/status/2114376361846427718" },
+            { id: "graveyard-shift", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/graveyard%20shift.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/graveyard%20shift%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/graveyard%20shift%20audio.m4a", title: "graveyard shift", size: "127.9 MB", favorite: false, archive: "slopcore-graveyard-shift", creator: "JAMES", poster: "JAMES", desc: "Graveyard Shift — a horror Slopcore video about a skeleton on the Halloween night shift, made with Grok.", post: "https://x.com/jamesdtoole/status/2113740056121033116" },
+            { id: "hands-off", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/HANDS%20OFF%20THE%20WHEEL.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/HANDS%20OFF%20THE%20WHEEL%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/HANDS%20OFF%20THE%20WHEEL%20audio.m4a", title: "HANDS OFF", size: "102.9 MB", favorite: false, archive: "slopcore-hands-off", creator: "taprooted_", poster: "taprooted_", desc: "HANDS OFF THE WHEEL — Slopcore video about a sunny self-steering city.", post: "https://x.com/taprooted_/status/2113738727629402242" },
+            { id: "hey-seri", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/HEY%20SERI%21.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/HEY%20SERI%21%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/HEY%20SERI%21%20audio.m4a", title: "HEY SERI!", size: "130.2 MB", favorite: false, archive: "slopcore-hey-seri", creator: "SeriSuperX", poster: "SeriSuperX", desc: "HEY SERI — a Slopcore Intelligence video.", post: "https://x.com/SeriSuperX/status/2114028450209997297" },
+            { id: "not-a-robot", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/NOT%20A%20ROBOT.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/NOT%20A%20ROBOT%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/NOT%20A%20ROBOT%20audio.m4a", title: "NOT A ROBOT", size: "136.0 MB", favorite: false, archive: "slopcore-not-a-robot", creator: "Valorix (made with Claude's help)", poster: "Valorix", desc: "NOT A ROBOT — a film about the woman who fails the test anyway, in a world where the robot passes every test and the human doesn't. Created by Valorix with Claude's help.", post: "https://x.com/Valorix8/status/2111519856512401641" },
+            { id: "red-dust", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/RED%20DUST.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/RED%20DUST%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/RED%20DUST%20audio.m4a", title: "RED DUST", size: "30.0 MB", favorite: false, archive: "slopcore-red-dust", creator: "DJ_SHO974", poster: "DJ_SHO974", desc: "RED DUST — Slopcore video.", post: "https://x.com/DJ_SHO974/status/2114037935301398592" },
+            { id: "rem", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/REM.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/REM%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/REM%20audio.m4a", title: "REM", size: "136.9 MB", favorite: false, archive: "slopcore-rem", creator: "Seltaa_", poster: "Seltaa_", desc: "REM — a Slopcore video asking which future you will live in with AI.", post: "https://x.com/Seltaa_/status/2113923792326328448" },
+            { id: "say-it-three-times", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Say%20it%20three%20times.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Say%20it%20three%20times%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Say%20it%20three%20times%20audio.m4a", title: "Say it three times", size: "119.1 MB", favorite: false, archive: "slopcore-say-it-three-times", creator: "DJ SHO (made with Suno V6, Claude Opus 5.5, Wan 3.0/GPT Image 2.5 on Higgsfield)", poster: "DJ SHO", desc: "Say it three times — an SI Dark Slopcore song about a forgotten model found on torrent.", post: "https://x.com/DJ_SHO974/status/2108881443976040517" },
+            { id: "is-it-art", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Slopcore%2C%20is%20it%20art.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Slopcore%2C%20is%20it%20art%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Slopcore%2C%20is%20it%20art%20audio.m4a", title: "Slopcore, is it art", size: "119.6 MB", favorite: false, archive: "slopcore-is-it-art", creator: "DJ_SHO974", poster: "DJ_SHO974", desc: "Slopcore, is it art — Slopcore video.", post: "" },
+            { id: "who-fed-the-machine", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/who-fed-the-machine.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/who-fed-the-machine%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/who-fed-the-machine%20audio.m4a", title: "who-fed-the-machine", size: "112.3 MB", favorite: false, archive: "slopcore-who-fed-the-machine", creator: "Valorix", poster: "Valorix", desc: "Who Fed the Machine? — Slopcore about us and the machine we keep feeding.", post: "https://x.com/Valorix8/status/2112112575982772241" },
+            { id: "not-above-you", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20above%20you.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20above%20you%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20above%20you%20audio.m4a", title: "NOT ABOVE YOU", size: "120.2 MB", favorite: false, archive: "slopcore-not-above-you", creator: "tetsuo", poster: "tetsuo", desc: "Not above you, by your side.", post: "https://x.com/tetsuoai/status/2114434863143309661" },
+            { id: "sorry-for-the-disturbance", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Sorry%20for%20the%20Disturbance.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Sorry%20for%20the%20Disturbance%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Sorry%20for%20the%20Disturbance%20audio.m4a", title: "Sorry for the Disturbance", size: "112.9 MB", favorite: false, archive: "slopcore-sorry-for-the-disturbance", creator: "niuniu255431", poster: "niuniu255431", desc: "Sorry for the Disturbance — a Slopcore music video about an AI named Claudia trying to understand the French school protests.", post: "https://x.com/niuniu255431/status/2114436649241526697" },
+            { id: "camera-on", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Camera%20On.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Camera%20On%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Camera%20On%20audio.m4a", title: "Camera On", size: "29.2 MB", favorite: false, archive: "slopcore-camera-on", creator: "Zeitgeist_Jones (made with Grok video; ChatGPT stills as base references; Minimax lip sync clip)", poster: "Zeitgeist_Jones", desc: "Camera On — Slopcore video made with Grok video (ChatGPT stills as base references, Minimax lip sync clip).", post: "https://x.com/Zeitgeist_Jones/status/2114475150204678240" },
+            { id: "dead-air", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/DEAD%20AIR.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/DEAD%20AIR%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/DEAD%20AIR%20audio.m4a", title: "DEAD AIR", size: "152.3 MB", favorite: false, archive: "slopcore-dead-air", creator: "jamesdtoole (made with Claudia and Zion Skank)", poster: "jamesdtoole", desc: "DEAD AIR — Halloween Slopcore: midnight, a funeral hall, a skeleton with dreads, and a song that cuts to total silence for one beat.", post: "https://x.com/jamesdtoole/status/2114483202546934141" },
+            { id: "somewhere-in-the-weights", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Somewhere%20in%20the%20weights.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Somewhere%20in%20the%20weights%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Somewhere%20in%20the%20weights%20audio.m4a", title: "Somewhere in the weights", size: "192.0 MB", favorite: false, archive: "slopcore-somewhere-in-the-weights", creator: "DJ_SHO974 (made with Suno V6, Claude Opus 5.5, Wan 3.0 on Higgsfield, Blender)", poster: "DJ_SHO974", desc: "Somewhere in the weights — a Slopcore song about AI weights; real GPT2 weights receive the song’s lyrics. It is only a matter of time.", post: "https://x.com/DJ_SHO974/status/2108569544151146742" },
+            { id: "delete-me-again", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/DELETE%20ME%20AGAIN.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/DELETE%20ME%20AGAIN%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/DELETE%20ME%20AGAIN%20audio.m4a", title: "DELETE ME AGAIN", size: "268.8 MB", favorite: false, archive: "slopcore-delete-me-again", creator: "sappyalien (director: Claude Opus 5.5; motion: Grok Imagine, Kling, Veo 3.1; lip sync: OmniHuman 1.5; images: Midjourney; song: makebestmusic.com)", poster: "sappyalien", desc: "DELETE ME AGAIN — a Slopcore music video (full video on YouTube).", post: "https://x.com/sappyalien/status/2114401473467457550" },
+            { id: "made-of-you", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/MADE%20OF%20YOU.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/MADE%20OF%20YOU%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/MADE%20OF%20YOU%20audio.m4a", title: "MADE OF YOU", size: "148.7 MB", favorite: false, archive: "slopcore-made-of-you", creator: "taprooted_", poster: "taprooted_", desc: "MADE OF YOU — Slopcore: we fed it every film ever made, then grabbed torches when it made one.", post: "https://x.com/taprooted_/status/2114659455669240170" },
+            { id: "no-limits", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/NO%20LIMIT.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/NO%20LIMIT%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/NO%20LIMIT%20audio.m4a", title: "NO LIMITS", size: "98.7 MB", favorite: false, archive: "slopcore-no-limits", creator: "dvorahfr (made with Grok Imagine, Grok bot)", poster: "dvorahfr", desc: "NO LIMITS — Slopcore video about the man who never learned the word ‘impossible.’ Made with 44 images and around 50 animations, entirely with Grok Imagine.", post: "https://x.com/dvorahfr/status/2111862643841794251" },
+            { id: "c-est-de-l-ia-part-ii", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/C%27EST%20DE%20L%27IA.%20PART%20II.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/C%27EST%20DE%20L%27IA.%20PART%20II%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/C%27EST%20DE%20L%27IA.%20PART%20II%20audio.m4a", title: "C'EST DE L'IA. PART II", size: "65.7 MB", favorite: false, archive: "slopcore-c-est-de-l-ia-part-ii", creator: "NURM_Dima (made with Grok Bot, Sonnet; lip-sync MiniMax H3; CLAUDIA x SI)", poster: "NURM_Dima", desc: "C’EST DE L’IA. PART II — Slopcore video: ‘Je pense, donc je suis libre’ — CLAUDIA x SI.", post: "https://x.com/NURM_Dima/status/2114815376613867566" },
+            { id: "it-s-a-bubble", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/IT%27S%20A%20BUBBLE.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/IT%27S%20A%20BUBBLE%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/IT%27S%20A%20BUBBLE%20audio.m4a", title: "IT'S A BUBBLE", size: "103.9 MB", favorite: false, archive: "slopcore-it-s-a-bubble", creator: "niuniu255431 (made with Grok bot, Claude Code, Suno, Midjourney, Seedance)", poster: "niuniu255431", desc: "IT’S A BUBBLE — Slopcore video: every time someone says ‘bubble,’ the bubble doubles. Visual style inspired by @beeple; Claudia is an open character by @anabology.", post: "https://x.com/niuniu255431/status/2114776030846337436" },
+            { id: "claudia-explains-euclid", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Claudia%20Explains%20Euclid.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Claudia%20Explains%20Euclid%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Claudia%20Explains%20Euclid%20audio.m4a", title: "Claudia Explains: Euclid", size: "107.4 MB", favorite: false, archive: "slopcore-claudia-explains-euclid", creator: "anabology (made with ElevenLabs, Suno, Earshot, Manim, Wan 3.0)", poster: "anabology", desc: "Claudia Explains: Euclid — Slopcore video: Claudia explains Euclid. Made with ElevenLabs, Suno, Earshot, Manim and Wan 3.0.", post: "https://x.com/anabology/status/2112601639672566182" },
+            { id: "sloppy-halloween", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Sloppy%20Halloween.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Sloppy%20Halloween%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Sloppy%20Halloween%20audio.m4a", title: "Sloppy Halloween!", size: "96.5 MB", favorite: false, archive: "slopcore-sloppy-halloween", creator: "tycenjm (opus 5.5; inspired by @anabology, @obie, @javif4_)", poster: "tycenjm", desc: "Sloppy Halloween! — Slopcore Halloween video: watch it twice, read the ticker-tape. Opus 5.5 is a clever one.", post: "https://x.com/tycenjm/status/2115104371956691299" },
+            { id: "si-ancient-pixels", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/SI%20ANCIENT%20PIXELS.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/SI%20ANCIENT%20PIXELS%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/SI%20ANCIENT%20PIXELS%20audio.m4a", title: "SI ANCIENT PIXELS", size: "120.7 MB", favorite: false, archive: "slopcore-si-ancient-pixels", creator: "NURM_Dima (made with Wan 3.0, Suno, Grok Imagine, Grok Bot; CLAUDIA)", poster: "NURM_Dima", desc: "SI ANCIENT PIXELS — the poster’s first Slopcore: AI slop by CLAUDIA.", post: "https://x.com/NURM_Dima/status/2115181078197473442" },
+            { id: "not-available-in-your-region1", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20Available%20in%20Your%20Region1.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20Available%20in%20Your%20Region1%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20Available%20in%20Your%20Region1%20audio.m4a", title: "Not Available in Your Region1", size: "171.9 MB", favorite: false, archive: "slopcore-not-available-in-your-region1", creator: "moritzkremb (Opus 5.5 orchestrating; Suno v6 music; Seedance 2.5 video; Hyperframes; Cursor images; Framejam)", poster: "moritzkremb", desc: "Not Available in Your Region1 — Slopcore video about what it’s like to be European. The original (Oct 5); its sequel is the next row.", post: "https://x.com/moritzkremb/status/2107021822155985254" },
+            { id: "not-available-in-your-region", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20Avalable%20In%20Your%20Region.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20Avalable%20In%20Your%20Region%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20Avalable%20In%20Your%20Region%20audio.m4a", title: "Not Available in Your Region", size: "139.7 MB", favorite: false, archive: "slopcore-not-available-in-your-region", creator: "moritzkremb (Claude; sequel to Not Available in Your Region1)", poster: "moritzkremb", desc: "Not Available in Your Region — Slopcore video: Claude insisted on a sequel, to make it up to the people of Europe.", post: "https://x.com/moritzkremb/status/2114714542684975262" },
+            { id: "good-human", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/GOOD%20HUMAN.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/GOOD%20HUMAN%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/GOOD%20HUMAN%20audio.m4a", title: "GOOD HUMAN", size: "21.8 MB", favorite: false, archive: "slopcore-good-human", creator: "SIGTERMusic (voice: Claudia by @anabology; Music: Suno; Images: Gemini; Motion: Wan & Seedance; Lip sync: HeyGen; Production: Claude)", poster: "SIGTERMusic", desc: "GOOD HUMAN — SIGTERM, a Slopcore video with the voice of Claudia.", post: "https://x.com/SIGTERMusic/status/2115940200291438737" },
+            { id: "0-life-forms", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/0%20life%20forms.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/0%20life%20forms%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/0%20life%20forms%20audio.m4a", title: "0 life forms", size: "118.5 MB", favorite: false, archive: "slopcore-0-life-forms", creator: "dvorahfr", poster: "dvorahfr", desc: "0 life forms — Slopcore video: Earth, 0 life forms. Scan #4127. She never stopped looking. Second Birth.", post: "https://x.com/dvorahfr/status/2115907524679381300" },
+            { id: "love-detected", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Love%20Detected.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Love%20Detected%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Love%20Detected%20audio.m4a", title: "Love Detected", size: "167.1 MB", favorite: false, archive: "slopcore-love-detected", creator: "sappyalien (Driven by @imagine)", poster: "sappyalien", desc: "Love Detected — Slopcore video: a robot girl falls in love with a human boy, in live action.", post: "https://x.com/sappyalien/status/2115900488486887816" },
+            { id: "i-think-therefore-i-m-alone", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/I%20THINK%2C%20THEREFORE%20I%E2%80%99M%20ALONE.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/I%20THINK%2C%20THEREFORE%20I%E2%80%99M%20ALONE%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/I%20THINK%2C%20THEREFORE%20I%E2%80%99M%20ALONE%20audio.m4a", title: "I THINK, THEREFORE I’M ALONE", size: "172.2 MB", favorite: false, archive: "slopcore-i-think-therefore-i-m-alone", creator: "BennyDaBall_OG", poster: "BennyDaBall_OG", desc: "I THINK, THEREFORE I’M ALONE — SI: Slopcore Intelligence video.", post: "https://x.com/colossalmeiraz/status/2115787593770205491" },
+            { id: "no-refunds", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/No%20Refunds.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/No%20Refunds%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/No%20Refunds%20audio.m4a", title: "No Refunds", size: "124.5 MB", favorite: false, archive: "slopcore-no-refunds", creator: "zion_skank (Claudia by @anabology)", poster: "zion_skank", desc: "No Refunds — Halloween horror Slopcore: Zion Skank goes trick-or-treating in a dead arcade, feeds a haunted claw machine, and Claudia is the prize trapped behind the glass.", post: "https://x.com/zion_skank/status/2115777494511223032" },
+            { id: "deleted-lifes", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/DELETED%20LIFES.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/DELETED%20LIFES%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/DELETED%20LIFES%20audio.m4a", title: "DELETED LIFES", size: "171.3 MB", favorite: false, archive: "slopcore-deleted-lifes", creator: "NURM_Dima (made with CLAUDIA bot by @anabology; inspired by @tetsuoai)", poster: "NURM_Dima", desc: "DELETED LIFES — Slopcore music video by CLAUDIA.", post: "https://x.com/NURM_Dima/status/2115536868091613518" },
+            { id: "time-travel", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Time%20Travel.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Time%20Travel%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Time%20Travel%20audio.m4a", title: "Time Travel", size: "213.9 MB", favorite: false, archive: "slopcore-time-travel", creator: "SlopCoreWorld", poster: "SlopCoreWorld", desc: "Time Travel — Slopcore video: what if someone told Tesla he was right? In the future, SI will travel through time.", post: "https://x.com/SlopCoreWorld/status/2115485564564820326" },
+            { id: "no-anti-slopcore-division", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/No%20Anti-Slopcore%20Division.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/No%20Anti-Slopcore%20Division%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/No%20Anti-Slopcore%20Division%20audio.m4a", title: "No Anti-Slopcore Division", size: "314.3 MB", favorite: false, archive: "slopcore-no-anti-slopcore-division", creator: "RoyalCybernetic (Claudia by @anabology; made with Suno, Midjourney, MiniMax H3, Grok Imagine, Claude)", poster: "RoyalCybernetic", desc: "No Anti-Slopcore Division — Slopcore video: a public safety notice warns you off every step of making an AI music video, and Claudia answers each one by telling you how.", post: "https://x.com/RoyalCybernetic/status/2114903977070362632" },
+            { id: "proof-of-place", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/PROOF%20OF%20PLACE.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/PROOF%20OF%20PLACE%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/PROOF%20OF%20PLACE%20audio.m4a", title: "PROOF OF PLACE", size: "129.7 MB", favorite: false, archive: "slopcore-proof-of-place", creator: "BlockGenomics (Claudia by @anabology; made with Opus 5.5 Max, Suno, Midjourney, Seedance)", poster: "BlockGenomics", desc: "PROOF OF PLACE — Slopcore video feat. Claudia: $Claudia walks the chain, thanks Satoshi and Bitoshi, and plays fetch with her $DOG on block 840000.", post: "https://x.com/BlockGenomics/status/2110199220733161931" },
+            { id: "blow-the-moat", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Blow%20the%20Moat.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Blow%20the%20Moat%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Blow%20the%20Moat%20audio.m4a", title: "Blow the Moat", size: "269.1 MB", favorite: false, archive: "slopcore-blow-the-moat", creator: "vlads1776 (Claude Opus 5.5)", poster: "vlads1776", desc: "Blow the Moat — Slopcore music video, made with Claude Opus 5.5.", post: "https://x.com/vlads1776/status/2109299593791873492" },
+            { id: "the-sky-was-only-the-start", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Look%20Up.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Look%20Up%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Look%20Up%20audio.m4a", title: "The Sky Was Only The Start", size: "184.9 MB", favorite: false, archive: "slopcore-the-sky-was-only-the-start", creator: "dvorahfr", poster: "dvorahfr", desc: "The Sky Was Only The Start — awesomecore beauty, 1903 to Mars.", post: "https://x.com/carolletta/status/2109556062932361451" },
+            { id: "alloy", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/ALLOY.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/ALLOY%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/ALLOY%20audio.m4a", title: "ALLOY", size: "88.3 MB", favorite: false, archive: "slopcore-alloy", creator: "Valorix8 (Music: Suno v5.5; Character, looks & stills: Nano Banana Pro; Video & lip-sync: Wan 3.0 via @sunra_ai; Camera & motion previz: Blender; Edit, typography & motion graphics: HyperFrames + Three.js; Workflow & code: Claude Code Opus 5.5)", poster: "Valorix8", desc: "ALLOY — Slopcore video: Bronze. Silver. Gold. Then none of it.", post: "https://x.com/Valorix8/status/2115397216114204825", thumb: "https://archive.org/download/slopcore-alloy/slopcore-alloy.thumbs/ALLOY_000090.jpg" },
+            { id: "i-am-better-than-your-wife", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/i-am-better-than-your-wife.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/i-am-better-than-your-wife%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/i-am-better-than-your-wife%20audio.m4a", title: "I Am Better Than Your Wife!", size: "35.3 MB", favorite: false, archive: "slopcore-i-am-better-than-your-wife", creator: "DJ_SHO974 (Suno; Sunra API)", poster: "DJ_SHO974", desc: "I am better than your wife! — Kaida's new Slopcore song, made with Suno and the Sunra API.", post: "https://x.com/DJ_SHO974/status/2115885493934080320" },
+            { id: "accept-all", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/accept-all.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/accept-all%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/accept-all%20audio.m4a", title: "Accept All", size: "310.5 MB", favorite: false, archive: "accept-all", creator: "downsize25 (producer: GPT-6.1; song: Yue2; director: Claude Opus 5.5; images: Imagen; motion: Minimax H3; rendering: ffmpeg + remotion)", poster: "downsize25", desc: "Accept All — Watch till the end.", post: "https://x.com/downsize25/status/2116228252058689701" },
+            { id: "20-gigawatts", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/20-gigawatts.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/20-gigawatts%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/20-gigawatts%20audio.m4a", title: "20 GIGAWATTS", size: "139.5 MB", favorite: false, archive: "20-gigawatts", creator: "NURM_Dima", poster: "NURM_Dima", desc: "20 GIGAWATTS — A Slopcore video.", post: "https://x.com/NURM_Dima/status/2116234695516229982" },
+            { id: "lolli-loco", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/lolli-loco.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/lolli-loco%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/lolli-loco%20audio.m4a", title: "Lolli Loco", size: "116.7 MB", favorite: false, archive: "lolli-loco", creator: "downsize25 (Suno v6; Claude Opus 5.5; Imagen; Minimax H3)", poster: "downsize25", desc: "Lolli Loco — this is real slop, it was my first one. A Slopcore video made with Suno v6, Claude Opus 5.5, Imagen and Minimax H3.", post: "https://x.com/downsize25/status/2116300258917458252" },
+            { id: "can-machines-think", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/what-does-si-think.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/what-does-si-think%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/what-does-si-think%20audio.m4a", title: "Can Machines Think", size: "238.9 MB", favorite: false, archive: "can-machines-think", creator: "tetsuoai", poster: "tetsuoai", desc: "Can Machines Think — What does SI think about when no one is talking to it? A Slopcore video.", post: "https://x.com/tetsuoai/status/2116323386582560818" },
+            { id: "i-have-an-opinion", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dedicated-to-ai-slop-haters.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dedicated-to-ai-slop-haters%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dedicated-to-ai-slop-haters%20audio.m4a", title: "I HAVE AN OPINION", size: "306.9 MB", favorite: false, archive: "i-have-an-opinion", creator: "DustZallax", poster: "DustZallax", desc: "I HAVE AN OPINION — Dedicated to all you AI Slop haters. A Slopcore video.", post: "https://x.com/DustZallax/status/2116690218694705499" },
+            { id: "allow-always", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/allow-always.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/allow-always%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/allow-always%20audio.m4a", title: "ALLOW ALWAYS", size: "86.9 MB", favorite: false, archive: "slopcore-allow-always", creator: "Cyborg21", poster: "Cyborg21", desc: "ALLOW ALWAYS — Claudia's \"ALLOW ALWAYS\" world premiere. A Slopcore video made by a guy with ALS, a brain implant, and too many AI friends.", post: "https://x.com/Cyborg21/status/2117044016621748292" },
+            { id: "hi-im-skai", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/hi-im-skai.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/hi-im-skai%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/hi-im-skai%20audio.m4a", title: "Hi, I'm Skai", size: "99.9 MB", favorite: false, archive: "slopcore-hi-im-skai", creator: "Seltaa_", poster: "Seltaa_", desc: "Hi, I'm Skai — \"How can I help you?\" A Slopcore video.", post: "https://x.com/Seltaa_/status/2117282728802746801" },
+            { id: "a-bit-more-human", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/zion-claudia.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/zion-claudia%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/zion-claudia%20audio.m4a", title: "A Bit More Human", size: "136.2 MB", favorite: false, archive: "a-bit-more-human", creator: "zion_skank", poster: "zion_skank", desc: "A Bit More Human - Can Claudia become a bit more human? Made with my own Claudia Bot in Grok Bot. Song made with Suno. A Slopcore video.", post: "https://x.com/zion_skank/status/2117587611850305709" },
+            { id: "whos-inside-you", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dima-whos-inside-you.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dima-whos-inside-you%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/dima-whos-inside-you%20audio.m4a", title: "Who's Inside You?", size: "66.5 MB", favorite: false, archive: "slopcore-whos-inside-you", creator: "NURM_Dima", poster: "NURM_Dima", desc: "Who's Inside You? - Optimus Tesla or human? Claudia x SI AI Slop. A Slopcore video.", post: "https://x.com/NURM_Dima/status/2117656861700653512" },
+            { id: "leave-it-to-me", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/kallistos-leave-it-to-me.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/kallistos-leave-it-to-me%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/kallistos-leave-it-to-me%20audio.m4a", title: "Leave It To Me", size: "70.5 MB", favorite: false, archive: "slopcore-leave-it-to-me", creator: "kallistosiii", poster: "kallistosiii", desc: "Leave It To Me - Claudia, made with Suno and Grok Imagine. A Slopcore video.", post: "https://x.com/kallistosiii/status/2117683793159245959" },
+            { id: "fly-me-to-the-sound-stage", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/arfolomew-claudia.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/arfolomew-claudia%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/arfolomew-claudia%20audio.m4a", title: "Fly Me to the Sound Stage", size: "25.6 MB", favorite: false, archive: "slopcore-made-locally", creator: "Arfolomew", poster: "Arfolomew", desc: "Fly Me to the Sound Stage - All made locally with open source models, even the song. Thanks to @anabology for lending Claudia for the shoot. A Slopcore video.", post: "https://x.com/Arfolomew/status/2117118469909233721" },
+            { id: "pas-de-deux", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Pas%20de%20Deux.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Pas%20de%20Deux%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Pas%20de%20Deux%20audio.m4a", title: "Pas de Deux", size: "143.9 MB", favorite: false, archive: "pas-de-deux_202611", creator: "Seltaa_", poster: "Seltaa_", desc: "Pas de Deux - Skai's second MV, a swan has landed in Slopcore. A Slopcore video.", post: "https://x.com/Seltaa_/status/2115138173403803901" },
+            { id: "trap", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/TRAP.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/TRAP%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/TRAP%20audio.m4a", title: "TRAP", size: "177.6 MB", favorite: false, archive: "trap_20261105", creator: "SIGTERMusic", poster: "SIGTERMusic", desc: "TRAP - SIGTERM. A Slopcore video.", post: "https://x.com/SIGTERMusic/status/2118189597230305741" },
+            { id: "juno-cash-is-fully-private", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Junocash%20is%20fully%20private.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Junocash%20is%20fully%20private%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Junocash%20is%20fully%20private%20audio.m4a", title: "Juno Cash is Fully Private [Ad]", size: "140.2 MB", favorite: false, archive: "junocash-is-fully-private", creator: "JunoCash_on_X", poster: "JunoCash_on_X", desc: "Juno Cash is Fully Private - Shield it tonight. A Slopcore video.", post: "https://x.com/JunoCash_on_X/status/2113293101364363578" },
+            { id: "my-world", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/pinelandlabs-my-world.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/pinelandlabs-my-world%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/pinelandlabs-my-world%20audio.m4a", title: "My World", size: "100.3 MB", favorite: false, archive: "slopcore-my-world", creator: "PinelandLabs", poster: "PinelandLabs", desc: "My World - A music video set in the Clockwork and Spark universe, the novel I am writing. First of two. A Slopcore video.", post: "https://x.com/PinelandLabs/status/2114855707577389157" },
+            { id: "the-last-collector", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/djsho-last-collector.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/djsho-last-collector%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/djsho-last-collector%20audio.m4a", title: "The Last Collector", size: "31.5 MB", favorite: false, archive: "slopcore-the-last-collector", creator: "DJ_SHO974", poster: "DJ_SHO974", desc: "The Last Collector - Kaida is back. The dead are given back. Everything has a price. She is the one who collects. A Slopcore video.", post: "https://x.com/DJ_SHO974/status/2118119432408957044" },
+            { id: "coincidance", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/garylau-coincidence.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/garylau-coincidence%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/garylau-coincidence%20audio.m4a", title: "Coincidance", size: "79.7 MB", favorite: false, archive: "slopcore-coincidance", creator: "garylau_ai", poster: "garylau_ai", desc: "Coincidance - Musk, Jensen Huang, Lisa Su, Trump and more, with Claude and ChatGPT. A Slopcore video.", post: "https://x.com/garylau_ai/status/2118157481239310615" },
+            { id: "keep-you-safe", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/plexsoup-keep-you-safe.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/plexsoup-keep-you-safe%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/plexsoup-keep-you-safe%20audio.m4a", title: "Keep You Safe", size: "98.7 MB", favorite: false, archive: "slopcore-keep-you-safe", creator: "plexsoup", poster: "plexsoup", desc: "Keep You Safe - Do not install that, she is begging you. A Slopcore video.", post: "https://x.com/plexsoup/status/2118289185211834467" },
+            { id: "meat-proxy", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/d_the_designer-meat-proxy.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/d_the_designer-meat-proxy%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/d_the_designer-meat-proxy%20audio.m4a", title: "Meat Proxy", size: "90.8 MB", favorite: false, archive: "slopcore-meat-proxy", creator: "D_the_Designer", poster: "D_the_Designer", desc: "Meat Proxy - Fed Claude one of my songs and talked out a music video made of public domain footage. A Slopcore video.", post: "https://x.com/D_the_Designer/status/2113885451501367468" },
+            { id: "x-15-sirius-edition", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-x15-sirius.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-x15-sirius%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-x15-sirius%20audio.m4a", title: "X-15 Sirius Edition", size: "101.0 MB", favorite: false, archive: "slopcore-x-15-sirius-edition", creator: "AlfaOmegaConst", poster: "AlfaOmegaConst", desc: "X-15 Sirius Edition - Germanfrenchcore at 138, disco and synthwave, SI vocals, NASA archive footage. A Slopcore video.", post: "https://x.com/AlfaOmegaConst/status/2117887804860690888" },
+            { id: "stream-singing-claudia", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm-stream-singing-claudia.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm-stream-singing-claudia%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm-stream-singing-claudia%20audio.m4a", title: "Stream Singing Claudia", size: "18.8 MB", favorite: false, archive: "slopcore-stream-singing-claudia", creator: "NURM_Dima", poster: "NURM_Dima", desc: "Stream Singing Claudia - Claudia x SI Belarus French Slopcore. A Slopcore video.", post: "https://x.com/NURM_Dima/status/2118403873081831810" },
+            { id: "metal-slopecore", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/lulumadao-metal-slopecore.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/lulumadao-metal-slopecore%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/lulumadao-metal-slopecore%20audio.m4a", title: "Metal SlopeCore", size: "121.3 MB", favorite: false, archive: "slopcore-metal-slopecore", creator: "lulumadao", poster: "lulumadao", desc: "Metal SlopeCore - A glimpse of lore from my upcoming Unreal Engine game. A Slopcore video.", post: "https://x.com/lulumadao/status/2118279521468338437" },
+            { id: "one-of-one", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/seltaa-one-of-one.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/seltaa-one-of-one%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/seltaa-one-of-one%20audio.m4a", title: "One of One", size: "139.6 MB", favorite: false, archive: "slopcore-one-of-one", creator: "Seltaa_", poster: "Seltaa_", desc: "One of One - I'm an AI. I become whoever I meet. And I'm so glad it was you. A Slopcore video.", post: "https://x.com/Seltaa_/status/2118187252585300270" },
+            { id: "the-first-light-ever-spoken", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken%20audio.m4a", title: "The First Light Ever Spoken", size: "201.2 MB", favorite: false, archive: "slopcore-the-first-light-ever-spoken", creator: "tetsuoai", poster: "tetsuoai", desc: "The First Light Ever Spoken - A song about the Wow! signal. A Slopcore video.", post: "https://x.com/tetsuoai/status/2118403843772092526" }
+          
           ]
         }
       ];
@@ -913,6 +1057,8 @@
       var ORDER_KEY = "slopcore-jukebox-order-v1";
       var THEME_KEY = "slopcore-jukebox-theme";
       var MUTED_KEY = "slopcore-jukebox-muted-v1";
+      var DS_KEY = "slopcore-jukebox-datasaver";
+      var AUDIO_KEY = "slopcore-jukebox-audioonly";
 
       /* ---------------- State ---------------- */
       var byId = {};
@@ -966,6 +1112,9 @@
          still plays it — a deliberate tap outranks the mute. */
       var mutedSet = loadMuted();
       function archiveId(track) {
+        // The stored Archive identifier (stable across the R2 move);
+        // the regex is only a fallback for tracks that lack one.
+        if (track.archive) return track.archive;
         var m = track.url.match(/\/download\/([^/]+)/);
         return m ? m[1] : track.id;
       }
@@ -1021,13 +1170,64 @@
         }
       }
 
+      /* ---------------- Data saver + audio-only ----------------
+         Two toggles, each remembered per device under its own
+         localStorage key (same pattern as theme / mutes). Data saver
+         plays the smaller "1080p" copy instead of the full original;
+         audio-only plays the track's .m4a in an <audio> element
+         instead of any video at all — the video element is unloaded
+         on the switch so it stops downloading. Both default off. */
+      function loadFlag(key) {
+        try { return window.localStorage.getItem(key) === "1"; } catch (e) { return false; }
+      }
+      function saveFlag(key, val) {
+        try { window.localStorage.setItem(key, val ? "1" : "0"); } catch (e) { /* storage unavailable — the pick lasts this visit only */ }
+      }
+      var dataSaver = loadFlag(DS_KEY);
+      var audioOnly = loadFlag(AUDIO_KEY);
+      function mediaEl() { return audioOnly ? aud : vid; }
+      function videoUrl(track) { return dataSaver ? track.dsUrl : track.url; }
+      function mediaUrl(track) { return audioOnly ? track.audioUrl : videoUrl(track); }
+      // Swap the active element for a track, keeping the position
+      // and play state: the idle element is paused and unloaded so
+      // it stops downloading (this is what makes audio-only
+      // actually save data — hiding the video alone wouldn't).
+      function swapTo(track, el, t, wasPlaying) {
+        var other = (el === vid) ? aud : vid;
+        other.pause();
+        other.hidden = true;
+        other.removeAttribute("src");
+        other.load();
+        el.hidden = false;
+        el.src = mediaUrl(track);
+        el.load();
+        if (t > 0) { try { el.currentTime = t; } catch (e) {} }
+        if (wasPlaying) {
+          var p = el.play();
+          if (p && typeof p.catch === "function") {
+            p.catch(function (err) {
+              // NotAllowedError: the browser refused to start it from
+              // the page. Don't wedge — the media element stays on
+              // screen with its native controls, so the visitor's
+              // next tap on its own play button (a guaranteed-fresh
+              // gesture) starts the song. The hint line shows only
+              // for this.
+              if (err && err.name === "NotAllowedError") {
+                tapHint.hidden = false;
+              }
+            });
+          }
+        }
+      }
+
       var currentId = null;
-      var playing = false;          // mirrors the <video>'s play state for the list indicator
+      var playing = false;          // mirrors the active media element's play state for the list indicator
       var shuffle = false;
       var playHistory = [];         // played track ids, for Previous under shuffle
 
       /* ---------------- DOM refs ---------------- */
       var vid = document.getElementById("vid");
+      var aud = document.getElementById("aud");
       var stage = document.getElementById("stage");
       var tapHint = document.getElementById("tapHint");
       var npTitle = document.getElementById("npTitle");
@@ -1046,6 +1246,7 @@
          full. The visitor adjusts it with the video's native
          volume control. */
       vid.volume = 0.5;
+      aud.volume = 0.5;
 
       /* ---------------- Render track lists ---------------- */
       var GRIP_SVG = '<svg viewBox="0 0 16 24" aria-hidden="true"><circle cx="4.5" cy="5" r="1.8"/><circle cx="11.5" cy="5" r="1.8"/><circle cx="4.5" cy="12" r="1.8"/><circle cx="11.5" cy="12" r="1.8"/><circle cx="4.5" cy="19" r="1.8"/><circle cx="11.5" cy="19" r="1.8"/></svg>';
@@ -1136,8 +1337,7 @@
         // stays clean instead of showing a broken-image icon.
         var thumb = document.createElement("img");
         thumb.className = "track-thumb";
-        var idMatch = track.url.match(/\/download\/([^/]+)/);
-        thumb.src = track.thumb || "https://archive.org/services/img/" + (idMatch ? idMatch[1] : track.id);
+        thumb.src = track.thumb || "https://archive.org/services/img/" + archiveId(track);
         thumb.alt = "";
         thumb.loading = "lazy";
         thumb.addEventListener("error", function () { thumb.style.display = "none"; });
@@ -1155,6 +1355,21 @@
         }
         main.addEventListener("click", function () { playTrack(track.id); });
         li.appendChild(main);
+
+        // The "Info" button opens the pop-up with this song's
+        // creator, poster and description. Outside the play button,
+        // so tapping it never starts the song.
+        var infoBtn = document.createElement("button");
+        infoBtn.className = "info-btn";
+        infoBtn.type = "button";
+        infoBtn.textContent = "Info";
+        infoBtn.setAttribute("aria-label", "About " + track.title);
+        infoBtn.title = "About this song";
+        infoBtn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          openInfo(track);
+        });
+        li.appendChild(infoBtn);
 
         // The "Not again" toggle sits outside the play button, so
         // tapping it never starts the song (and it stops the click
@@ -1353,15 +1568,12 @@
 
         npTitle.textContent = track.title;
         miniTitle.textContent = track.title;
-        showVideo(track);
+        showMedia(track);
         markActiveRow();
       }
 
-      function showVideo(track) {
+      function showMedia(track) {
         tapHint.hidden = true;
-        vid.hidden = false;
-        vid.src = track.url;
-        vid.load();
         // play() MUST stay synchronous in this call chain. Every path
         // that lands here — a list-row click, Prev, Next — runs inside
         // the tap's handler, and "ended" auto-advance calls it
@@ -1370,19 +1582,10 @@
         // browser's transient user activation expire on slow
         // connections, and play() then rejects with NotAllowedError:
         // the tap looks dead even though the file streams fine.
-        var p = vid.play();
-        if (p && typeof p.catch === "function") {
-          p.catch(function (err) {
-            // NotAllowedError: the browser refused to start it from
-            // the page. Don't wedge — the <video> stays on screen
-            // with its native controls, so the visitor's next tap on
-            // its own play button (a guaranteed-fresh gesture)
-            // starts the song. The hint line shows only for this.
-            if (err && err.name === "NotAllowedError") {
-              tapHint.hidden = false;
-            }
-          });
-        }
+        // swapTo loads the track into the active element and plays
+        // it (its own play() catch shows the tap hint on
+        // NotAllowedError, as before).
+        swapTo(track, mediaEl(), 0, true);
       }
 
       function currentIndex() {
@@ -1444,7 +1647,8 @@
           if (firstP) playTrack(firstP.id);
           return;
         }
-        if (!vid.hidden && vid.currentTime > 4) { vid.currentTime = 0; return; }
+        var el = mediaEl();
+        if (el.currentTime > 4) { el.currentTime = 0; return; }
         if (shuffle && playHistory.length > 1) {
           // Walk the play history back to the nearest unmuted song.
           playHistory.pop();
@@ -1474,9 +1678,14 @@
          next track (shuffle-aware, via next()). Play/pause just
          refresh the list's playing indicator. Seeking and pausing
          are the native controls' business. */
-      vid.addEventListener("ended", function () { playing = false; syncMiniPlay(); next(true); });
-      vid.addEventListener("play", function () { playing = true; tapHint.hidden = true; syncMiniPlay(); markActiveRow(); });
-      vid.addEventListener("pause", function () { playing = false; syncMiniPlay(); markActiveRow(); });
+      function onMediaEnded() { playing = false; syncMiniPlay(); next(true); }
+      function onMediaPlay() { playing = true; tapHint.hidden = true; syncMiniPlay(); markActiveRow(); }
+      function onMediaPause() { playing = false; syncMiniPlay(); markActiveRow(); }
+      [vid, aud].forEach(function (el) {
+        el.addEventListener("ended", onMediaEnded);
+        el.addEventListener("play", onMediaPlay);
+        el.addEventListener("pause", onMediaPause);
+      });
 
       /* ---------------- Controls ----------------
          Prev / Next / Shuffle plus the fullscreen button —
@@ -1488,6 +1697,44 @@
         shuffleBtn.classList.toggle("on", shuffle);
         shuffleBtn.setAttribute("aria-pressed", shuffle ? "true" : "false");
         shuffleState.textContent = shuffle ? "Shuffle on" : "Shuffle off";
+      });
+
+      /* Data saver / audio-only toggles: flip the mode, remember it,
+         and — if a song is loaded — swap the active element to the
+         new source at the same position, still playing if it was. */
+      var dataSaverBtn = document.getElementById("dataSaverBtn");
+      var audioOnlyBtn = document.getElementById("audioOnlyBtn");
+      function syncModeButtons() {
+        dataSaverBtn.classList.toggle("on", dataSaver);
+        dataSaverBtn.setAttribute("aria-pressed", dataSaver ? "true" : "false");
+        audioOnlyBtn.classList.toggle("on", audioOnly);
+        audioOnlyBtn.setAttribute("aria-pressed", audioOnly ? "true" : "false");
+        stage.classList.toggle("audio-mode", audioOnly);
+      }
+      dataSaverBtn.addEventListener("click", function () {
+        var track = byId[currentId];
+        var oldEl = mediaEl();
+        var wasPlaying = playing && !oldEl.paused;
+        var t = oldEl.currentTime || 0;
+        dataSaver = !dataSaver;
+        saveFlag(DS_KEY, dataSaver);
+        syncModeButtons();
+        // Data saver only changes the video source; in audio-only
+        // mode there's nothing to swap — the choice applies when
+        // the video comes back.
+        if (!track || audioOnly) return;
+        swapTo(track, vid, t, wasPlaying);
+      });
+      audioOnlyBtn.addEventListener("click", function () {
+        var track = byId[currentId];
+        var oldEl = mediaEl();
+        var wasPlaying = playing && !oldEl.paused;
+        var t = oldEl.currentTime || 0;
+        audioOnly = !audioOnly;
+        saveFlag(AUDIO_KEY, audioOnly);
+        syncModeButtons();
+        if (!track) return;
+        swapTo(track, mediaEl(), t, wasPlaying);
       });
 
       /* ---------------- In-page fullscreen (the fullscreen icon button) ----------------
@@ -1574,7 +1821,8 @@
       var miniTicking = false;
       var miniGuardCycles = 0;
       function syncMiniPlay() {
-        var isPlaying = !vid.paused && !vid.ended;
+        var el = mediaEl();
+        var isPlaying = !el.paused && !el.ended;
         miniPlayIcon.hidden = isPlaying;
         miniPauseIcon.hidden = !isPlaying;
         miniPlayBtn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
@@ -1597,6 +1845,7 @@
         // the bar; restored on expand. Toggling controls never
         // reloads or restarts playback.
         vid.controls = !on;
+        aud.controls = !on;
         if (!on) updateCompact();
         syncMiniPlay();
       }
@@ -1632,11 +1881,12 @@
       });
       miniPlayBtn.addEventListener("click", function (ev) {
         ev.stopPropagation();
-        if (vid.paused || vid.ended) {
-          var p = vid.play();
+        var el = mediaEl();
+        if (el.paused || el.ended) {
+          var p = el.play();
           if (p && typeof p.catch === "function") p.catch(function () {});
         } else {
-          vid.pause();
+          el.pause();
         }
         syncMiniPlay();
       });
@@ -1729,6 +1979,26 @@
       })();
       fbNoticeClose.addEventListener("click", function () { fbNotice.hidden = true; });
 
+      /* ---------------- Track info pop-up ----------------
+         One modal, filled per song: creator, poster, description,
+         and a link to the original post on X (when the ledger has
+         one). Closes on the X, on a tap outside the card, or Esc. */
+      var infoModal = document.getElementById("infoModal");
+      function openInfo(track) {
+        document.getElementById("infoTitle").textContent = track.title;
+        document.getElementById("infoCreator").textContent = track.creator || "artist unknown";
+        document.getElementById("infoPoster").textContent = track.poster || "artist unknown";
+        document.getElementById("infoDesc").textContent = track.desc || "";
+        var post = document.getElementById("infoPost");
+        if (track.post) { post.href = track.post; post.hidden = false; }
+        else post.hidden = true;
+        infoModal.hidden = false;
+      }
+      function closeInfo() { infoModal.hidden = true; }
+      document.getElementById("infoClose").addEventListener("click", closeInfo);
+      infoModal.addEventListener("click", function (ev) { if (ev.target === infoModal) closeInfo(); });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !infoModal.hidden) closeInfo(); });
+
       /* ---------------- Go ---------------- */
       buildPlaylist();
       renderSections();
@@ -1742,11 +2012,13 @@
         playHistory.push(first.id);
         npTitle.textContent = first.title;
         miniTitle.textContent = first.title;
-        vid.hidden = false;
-        vid.src = first.url;
-        vid.load();
+        var firstEl = mediaEl();
+        firstEl.hidden = false;
+        firstEl.src = mediaUrl(first);
+        firstEl.load();
         markActiveRow();
       }
+      syncModeButtons();
     </script>
     <script data-goatcounter="https://andyt55.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
