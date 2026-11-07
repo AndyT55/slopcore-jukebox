@@ -2127,6 +2127,20 @@
       unlockBtn.addEventListener("pointerleave", cancelUnlockHold);
       unlockBtn.addEventListener("pointercancel", cancelUnlockHold);
       unlockBtn.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
+      /* Landscape wrinkle: on Android, turning the phone sideways
+         makes the browser take the video fullscreen on its own —
+         and the lock overlay can't cover the browser's own
+         fullscreen, so a stray tap would pause the video. While
+         locked, pull it straight back out of fullscreen so the
+         lock stays in charge. */
+      document.addEventListener("fullscreenchange", function () {
+        if (!lockOverlay.hidden && document.fullscreenElement) {
+          if (document.exitFullscreen) {
+            var p = document.exitFullscreen();
+            if (p && p.catch) p.catch(function () {});
+          }
+        }
+      });
 
       /* ---------------- Go ---------------- */
       buildPlaylist();
