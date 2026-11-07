@@ -440,6 +440,9 @@
         color: var(--accent);
       }
       .cbtn:disabled { opacity: 0.45; cursor: default; }
+      /* The Lock button lives in the transport controls but only
+         shows on phones — on a PC there is nothing to lock against. */
+      .lock-btn { display: none; }
       .controls .spacer { flex: 1; }
       .shuffle-state {
         font-size: 12.5px;
@@ -633,7 +636,41 @@
            on/off state) so the control row always fits at phone
            widths instead of the last button being pushed off. */
         .shuffle-state { display: none; }
+        /* The Lock button only exists on phones. */
+        .lock-btn { display: inline-flex; }
       }
+
+      /* ---------- Screen lock (mobile only) ----------
+         The overlay covers the whole screen and swallows every
+         touch, so a stray tap can't stop the music or leave the
+         page. The music keeps playing underneath. The only way
+         out is pressing and holding the unlock button for a
+         second — easy on purpose, hard by accident. */
+      .lock-overlay {
+        position: fixed; inset: 0; z-index: 9999;
+        background: rgba(10, 10, 14, 0.92);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 14px; padding: 24px; text-align: center; color: #fff;
+        touch-action: none; user-select: none; -webkit-user-select: none;
+      }
+      .lock-overlay .lock-icon { width: 44px; height: 44px; fill: currentColor; opacity: 0.9; }
+      .lock-overlay .lock-now { font-size: 13px; opacity: 0.7; }
+      .lock-overlay .lock-title { font-size: 20px; font-weight: 700; }
+      .lock-overlay .lock-hint { font-size: 13px; opacity: 0.7; }
+      .unlock-btn {
+        position: relative; overflow: hidden;
+        appearance: none; border: 1px solid rgba(255, 255, 255, 0.5); background: transparent; color: #fff;
+        font: inherit; font-size: 17px; font-weight: 700;
+        border-radius: 999px; padding: 16px 34px; cursor: pointer;
+        touch-action: none;
+      }
+      .unlock-btn .unlock-progress {
+        position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+        background: rgba(255, 255, 255, 0.25);
+      }
+      .unlock-btn:not(.holding) .unlock-progress { transition: none; }
+      .unlock-btn.holding .unlock-progress { width: 100%; transition: width 1s linear; }
+      .unlock-btn .unlock-label { position: relative; }
 
       /* ---------- "Skip" (muted tracks) ----------
          A muted row stays on the shelf but greys out: the
@@ -889,6 +926,9 @@
             <button class="cbtn" id="cssFsBtn" type="button" aria-label="Stretch the video across this page (in-page fullscreen)" title="Fullscreen — stretch the video across this page" aria-pressed="false">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
+            <button class="cbtn lock-btn" id="lockBtn" type="button" aria-label="Lock the screen" title="Lock the screen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            </button>
             <button class="mode-pill" id="dataSaverBtn" type="button" aria-pressed="false" title="Play the smaller copies — uses less mobile data">Data saver</button>
             <button class="mode-pill" id="audioOnlyBtn" type="button" aria-pressed="false" title="Play just the audio — no video at all, uses the least data">Audio only</button>
           </div>
@@ -929,8 +969,16 @@
         </div>
       </div>
 
+      <div class="lock-overlay" id="lockOverlay" hidden>
+        <svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        <div class="lock-now">Screen locked — now playing</div>
+        <div class="lock-title" id="lockTitle">Nothing yet — pick a song</div>
+        <div class="lock-hint">Music keeps playing. Stray taps do nothing.</div>
+        <button class="unlock-btn" id="unlockBtn" type="button"><span class="unlock-progress"></span><span class="unlock-label">Hold to unlock</span></button>
+      </div>
+
       <footer>
-        <p>All 100 videos stream from Cloudflare R2 — the originals are also on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
+        <p>All 106 videos stream from Cloudflare R2 — the originals are also on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
       </footer>
     </div>
 
@@ -1063,7 +1111,13 @@
             { id: "stream-singing-claudia", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm-stream-singing-claudia.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm-stream-singing-claudia%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm-stream-singing-claudia%20audio.m4a", title: "Stream Singing Claudia", size: "18.8 MB", favorite: false, archive: "slopcore-stream-singing-claudia", creator: "NURM_Dima", poster: "NURM_Dima", desc: "Stream Singing Claudia - Claudia x SI Belarus French Slopcore. A Slopcore video.", post: "https://x.com/NURM_Dima/status/2118403873081831810" },
             { id: "metal-slopecore", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/lulumadao-metal-slopecore.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/lulumadao-metal-slopecore%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/lulumadao-metal-slopecore%20audio.m4a", title: "Metal SlopeCore", size: "121.3 MB", favorite: false, archive: "slopcore-metal-slopecore", creator: "lulumadao", poster: "lulumadao", desc: "Metal SlopeCore - A glimpse of lore from my upcoming Unreal Engine game. A Slopcore video.", post: "https://x.com/lulumadao/status/2118279521468338437" },
             { id: "one-of-one", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/seltaa-one-of-one.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/seltaa-one-of-one%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/seltaa-one-of-one%20audio.m4a", title: "One of One", size: "139.6 MB", favorite: false, archive: "slopcore-one-of-one", thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/seltaa-one-of-one%20thumb.jpg", creator: "Seltaa_", poster: "Seltaa_", desc: "One of One - I'm an AI. I become whoever I meet. And I'm so glad it was you. A Slopcore video.", post: "https://x.com/Seltaa_/status/2118187252585300270" },
-            { id: "the-first-light-ever-spoken", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken%20audio.m4a", title: "The First Light Ever Spoken", size: "201.2 MB", favorite: false, archive: "slopcore-the-first-light-ever-spoken", thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken%20thumb.jpg", creator: "tetsuoai", poster: "tetsuoai", desc: "The First Light Ever Spoken - A song about the Wow! signal. A Slopcore video.", post: "https://x.com/tetsuoai/status/2118403843772092526" }
+            { id: "the-first-light-ever-spoken", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken%20audio.m4a", title: "The First Light Ever Spoken", size: "201.2 MB", favorite: false, archive: "slopcore-the-first-light-ever-spoken", thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuo-first-light-ever-spoken%20thumb.jpg", creator: "tetsuoai", poster: "tetsuoai", desc: "The First Light Ever Spoken - A song about the Wow! signal. A Slopcore video.", post: "https://x.com/tetsuoai/status/2118403843772092526" },
+            { id: "ai-cat-back-in-the-box", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/photino-ai-cat.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/photino-ai-cat%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/photino-ai-cat%20audio.m4a", title: "AI Cat Back in the Box", size: "258.8 MB", favorite: false, archive: "slopcore-ai-cat-back-in-the-box", thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/photino-ai-cat%20thumb.jpg", creator: "the_photino", poster: "the_photino", desc: "AI Cat Back in the Box - There's no putting the AI cat back in the box. A Slopcore video.", post: "https://x.com/the_photino/status/2118818072907616379" },
+            { id: "je-demande-a-claude", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/benoitraphael-je-demande-a-claude.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/benoitraphael-je-demande-a-claude%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/benoitraphael-je-demande-a-claude%20audio.m4a", title: "Je demande à Claude", size: "88.1 MB", favorite: false, archive: "slopcore-je-demande-a-claude", thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/benoitraphael-je-demande-a-claude%20thumb.jpg", creator: "benoitraphael", poster: "benoitraphael", desc: "Je demande à Claude - A French take on Claudia with English subtitles, thanking @anabology for Claudia and @Extraltodeus for the inspiration. A Slopcore video.", post: "https://x.com/benoitraphael/status/2118586561055117734" },
+            { id: "8192-layers", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/taku_studio-8192-layers.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/taku_studio-8192-layers%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/taku_studio-8192-layers%20audio.m4a", title: "8,192 layers", size: "21.2 MB", favorite: false, archive: "slopcore-8192-layers", thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/taku_studio-8192-layers%20thumb.jpg", creator: "taku_studio", poster: "taku_studio", desc: "8,192 layers - A figure with a sword in a rain-soaked alley. A Slopcore video.", post: "https://x.com/taku_studio/status/2118860948433993974" },
+            { id: "grandmageddon", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/techhalla-grandmageddon.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/techhalla-grandmageddon%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/techhalla-grandmageddon%20audio.m4a", title: "Grandmageddon", size: "244.8 MB", favorite: false, archive: "slopcore-grandmageddon", thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/techhalla-grandmageddon%20thumb.jpg", creator: "techhalla", poster: "techhalla", desc: "Grandmageddon - Grok wrote and cut the whole edit by itself. A Slopcore video.", post: "https://x.com/techhalla/status/2111003023635804430" },
+            { id: "showa-21st-century", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/taku_studio-showa-21st-century.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/taku_studio-showa-21st-century%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/taku_studio-showa-21st-century%20audio.m4a", title: "Showa 21st Century", size: "35.0 MB", favorite: false, archive: "slopcore-showa-21st-century", thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/taku_studio-showa-21st-century%20thumb.jpg", creator: "taku_studio", poster: "taku_studio", desc: "Showa 21st Century - The 21st century as Showa kids dreamed it. A Slopcore video.", post: "https://x.com/taku_studio/status/2114367681130643690" },
+            { id: "face-value", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/flybyartistai-face-value.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/flybyartistai-face-value%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/flybyartistai-face-value%20audio.m4a", title: "Face Value", size: "135.7 MB", favorite: false, archive: "slopcore-face-value", thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/flybyartistai-face-value%20thumb.jpg", creator: "FlybyartistAI", poster: "FlybyartistAI", desc: "Face Value - A Claudia contest entry. A Slopcore video.", post: "https://x.com/FlybyartistAI/status/2118848345443807320" }
           
           ]
         }
@@ -1588,6 +1642,7 @@
         if (!opts.fromHistory && playHistory[playHistory.length - 1] !== id) playHistory.push(id);
 
         npTitle.textContent = track.title;
+        syncLockTitle(track.title);
         miniTitle.textContent = track.title;
         showMedia(track);
         markActiveRow();
@@ -2020,6 +2075,44 @@
       infoModal.addEventListener("click", function (ev) { if (ev.target === infoModal) closeInfo(); });
       document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !infoModal.hidden) closeInfo(); });
 
+      /* ---------------- Screen lock (mobile only) ----------------
+         A Lock button in the transport controls (shown on phones
+         only). Tapping it covers the page with an overlay that
+         swallows every touch, so a stray tap can't stop the music
+         or leave the page. The music keeps playing underneath.
+         To unlock, press and hold the big button for a second —
+         easy on purpose, hard by accident. Nothing else dismisses
+         the overlay: not a tap on it, not Esc. */
+      var lockOverlay = document.getElementById("lockOverlay");
+      var lockTitle = document.getElementById("lockTitle");
+      var unlockBtn = document.getElementById("unlockBtn");
+      var unlockTimer = null;
+      function syncLockTitle(t) { if (lockOverlay && !lockOverlay.hidden) lockTitle.textContent = t; }
+      function lockScreen() {
+        lockTitle.textContent = npTitle.textContent;
+        lockOverlay.hidden = false;
+      }
+      function unlockScreen() {
+        lockOverlay.hidden = true;
+        unlockBtn.classList.remove("holding");
+        unlockTimer = null;
+      }
+      document.getElementById("lockBtn").addEventListener("click", lockScreen);
+      function startUnlockHold(ev) {
+        ev.preventDefault();
+        unlockBtn.classList.add("holding");
+        unlockTimer = window.setTimeout(unlockScreen, 1000);
+      }
+      function cancelUnlockHold() {
+        if (unlockTimer) { window.clearTimeout(unlockTimer); unlockTimer = null; }
+        unlockBtn.classList.remove("holding");
+      }
+      unlockBtn.addEventListener("pointerdown", startUnlockHold);
+      unlockBtn.addEventListener("pointerup", cancelUnlockHold);
+      unlockBtn.addEventListener("pointerleave", cancelUnlockHold);
+      unlockBtn.addEventListener("pointercancel", cancelUnlockHold);
+      unlockBtn.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
+
       /* ---------------- Go ---------------- */
       buildPlaylist();
       renderSections();
@@ -2032,6 +2125,7 @@
         currentId = first.id;
         playHistory.push(first.id);
         npTitle.textContent = first.title;
+        syncLockTitle(first.title);
         miniTitle.textContent = first.title;
         var firstEl = mediaEl();
         firstEl.hidden = false;
