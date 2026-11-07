@@ -624,17 +624,22 @@
       }
       @media (max-width: 520px) {
         .track-thumb { width: 60px; }
+        /* On phones the two row pills stack one above the other,
+           so the title gets the width instead of the buttons —
+           side by side they squeezed it to one word per line. */
+        .row-actions { flex-direction: column; gap: 4px; align-items: stretch; }
+        .info-btn, .notagain { padding: 5px 8px; }
         /* The state word goes (the Shuffle button still shows its
            on/off state) so the control row always fits at phone
            widths instead of the last button being pushed off. */
         .shuffle-state { display: none; }
       }
 
-      /* ---------- "Not again" (muted tracks) ----------
+      /* ---------- "Skip" (muted tracks) ----------
          A muted row stays on the shelf but greys out: the
          thumbnail goes grayscale and dim, the title and number
          fade. The little pill button on the row is the toggle —
-         "Not again" mutes, "Undo" brings the song back. */
+         "Skip" mutes, "Undo" brings the song back. */
       .notagain {
         appearance: none;
         border: 1px solid var(--line);
@@ -763,6 +768,16 @@
       }
       .info-btn:hover { border-color: var(--accent); color: var(--accent); }
       .info-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      /* The row's two pills (Info + Skip) sit in their own
+         little group at the end of the row. Side by side on wide
+         screens; stacked on phones (see the 520px media query),
+         so the title gets the width instead of the buttons. */
+      .row-actions {
+        display: flex;
+        flex: none;
+        gap: 6px;
+        align-items: center;
+      }
       .info-modal {
         position: fixed;
         inset: 0;
@@ -933,7 +948,7 @@
          video's Archive.org thumbnail beside its title instead),
          favorite = star marker (Andy's picks),
          archive = the track's Internet Archive identifier — used for
-         its thumbnail, for the saved "Not again" set, and for
+         its thumbnail, for the saved muted set, and for
          GoatCounter paths, so those all survive the move to R2.
          creator / poster / desc / post = the info pop-up (from the
          ledger, or the Archive item's metadata for the early tracks).
@@ -1101,7 +1116,7 @@
         } catch (e) {}
       }
 
-      /* ---------------- "Not again" (muted tracks) ----------------
+      /* ---------------- "Skip" (muted tracks) ----------------
          The visitor's muted set, saved per device under its own
          localStorage key. It stores each track's Archive.org
          identifier — the path segment after /download/ in its
@@ -1139,11 +1154,11 @@
       }
       function syncMuteBtn(btn, track) {
         var muted = isMuted(track);
-        btn.textContent = muted ? "Undo" : "Not again";
+        btn.textContent = muted ? "Undo" : "Skip";
         btn.setAttribute("aria-pressed", muted ? "true" : "false");
         btn.setAttribute("aria-label", muted
           ? "Undo — let " + track.title + " play again"
-          : "Not again — skip " + track.title);
+          : "Skip " + track.title);
         btn.title = muted ? "Let this song play again" : "Don't play this song again";
       }
       function toggleMute(id) {
@@ -1282,7 +1297,7 @@
 
           var hint = document.createElement("p");
           hint.className = "drag-hint";
-          hint.textContent = "Tap a song to play it. To change the order, press and hold the dots beside a song until it lifts, then drag it where you want it — this device remembers it for next time. Tap \"Not again\" to grey a song out and the jukebox will skip it; tap Undo to bring it back.";
+          hint.textContent = "Tap a song to play it. To change the order, press and hold the dots beside a song until it lifts, then drag it where you want it — this device remembers it for next time. Tap \"Skip\" to grey a song out and the jukebox will skip it; tap Undo to bring it back.";
           wrap.appendChild(hint);
 
           var ul = document.createElement("ul");
@@ -1369,9 +1384,14 @@
           ev.stopPropagation();
           openInfo(track);
         });
-        li.appendChild(infoBtn);
+        // The two pills live in their own group at the end of the
+        // row, so on phones they can stack one above the other
+        // (see the 520px media query) and leave the title room.
+        var actions = document.createElement("div");
+        actions.className = "row-actions";
+        actions.appendChild(infoBtn);
 
-        // The "Not again" toggle sits outside the play button, so
+        // The "Skip" toggle sits outside the play button, so
         // tapping it never starts the song (and it stops the click
         // from bubbling anywhere else, too). It also sits clear of
         // the drag grip, so press-and-hold reorder is untouched.
@@ -1383,7 +1403,8 @@
           ev.stopPropagation();
           toggleMute(track.id);
         });
-        li.appendChild(muteBtn);
+        actions.appendChild(muteBtn);
+        li.appendChild(actions);
 
         return li;
       }
