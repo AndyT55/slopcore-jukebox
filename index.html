@@ -1329,6 +1329,11 @@
       }
       function applyFilter(q) {
         filterQuery = (q || "").trim();
+        // Remember the search on this device, so a page refresh
+        // (an accidental pull-down refresh on a phone, the browser
+        // reloading the tab) puts the same creator's songs back
+        // instead of dropping the visitor on the whole list.
+        try { window.localStorage.setItem("slopcore-creator-filter", filterQuery); } catch (e) { /* storage unavailable — the filter lasts this visit only */ }
         var ql = filterQuery.toLowerCase();
         var pool = poolTracks();
         // Hide rows that don't match; the list keeps its order
@@ -2351,9 +2356,20 @@
       });
 
       /* ---------------- Go ---------------- */
+      // Restore a saved creator filter (see applyFilter): the name
+      // goes back into the box and the menu, and the filter applies
+      // with the first render. The menu is filled after the render,
+      // so its value is set after buildCreatorOptions().
+      var savedFilter = "";
+      try { savedFilter = window.localStorage.getItem("slopcore-creator-filter") || ""; } catch (e) { savedFilter = ""; }
+      if (savedFilter) {
+        creatorSearch.value = savedFilter;
+        filterQuery = savedFilter;
+      }
       buildPlaylist();
       renderSections();
       buildCreatorOptions();
+      if (savedFilter) creatorSelect.value = savedFilter;
       // Load the first song into the player, paused and ready, so
       // the page opens with it on stage — the visitor still taps
       // play themselves (browsers won't start sound uninvited, and
