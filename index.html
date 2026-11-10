@@ -483,6 +483,23 @@
       }
       .reset-order:hover { color: var(--accent); }
       .drag-hint { font-size: 13px; color: var(--ink-soft); margin: 0 0 12px; }
+      /* ---------- Creator search / filter ---------- */
+      .creator-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+      .creator-filter input[type="search"], .creator-filter select {
+        font: inherit; font-size: 14px; color: var(--ink);
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: 999px; padding: 8px 12px; max-width: 100%;
+      }
+      .creator-filter input[type="search"] { flex: 1 1 180px; min-width: 0; }
+      .creator-filter select { flex: 0 1 auto; max-width: 100%; }
+      .creator-filter input[type="search"]:focus, .creator-filter select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+      .creator-filter .filter-clear {
+        appearance: none; background: none; border: 0; color: var(--ink-soft);
+        font: inherit; font-size: 13px; text-decoration: underline;
+        text-underline-offset: 3px; cursor: pointer; padding: 4px 2px;
+      }
+      .creator-filter .filter-clear:hover { color: var(--accent); }
+      .creator-filter .filter-note { flex-basis: 100%; font-size: 13px; color: var(--ink-soft); margin: 0; }
       .tracklist {
         list-style: none;
         margin: 0;
@@ -969,6 +986,16 @@
         </div>
       </section>
 
+      <div class="creator-filter" id="creatorFilter">
+        <input type="search" id="creatorSearch" placeholder="Search creator&hellip;" aria-label="Search by creator" autocomplete="off" list="creatorList">
+        <datalist id="creatorList"></datalist>
+        <select id="creatorSelect" aria-label="Pick a creator">
+          <option value="">All creators</option>
+        </select>
+        <button class="filter-clear" id="filterClear" type="button" hidden>Show all</button>
+        <p class="filter-note" id="filterNote" hidden></p>
+      </div>
+
       <main id="sections"></main>
 
       <div class="info-modal" id="infoModal" hidden>
@@ -993,7 +1020,7 @@
       </div>
 
       <footer>
-        <p>All 118 videos stream from Cloudflare R2 — the originals are also on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
+        <p>All 119 videos stream from Cloudflare R2 — the originals are also on the <a href="https://archive.org/details/@_andy1955" target="_blank" rel="noopener">Internet Archive</a>.</p>
       </footer>
     </div>
 
@@ -1074,7 +1101,7 @@
             { id: "not-a-robot", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/NOT%20A%20ROBOT.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/NOT%20A%20ROBOT%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/NOT%20A%20ROBOT%20audio.m4a", title: "NOT A ROBOT", size: "136.0 MB", favorite: false, archive: "slopcore-not-a-robot", creator: "Valorix (made with Claude's help)", poster: "Valorix", desc: "NOT A ROBOT — a film about the woman who fails the test anyway, in a world where the robot passes every test and the human doesn't. Created by Valorix with Claude's help.", post: "https://x.com/Valorix8/status/2111519856512401641" },
             { id: "red-dust", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/RED%20DUST.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/RED%20DUST%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/RED%20DUST%20audio.m4a", title: "RED DUST", size: "30.0 MB", favorite: false, archive: "slopcore-red-dust", creator: "DJ_SHO974", poster: "DJ_SHO974", desc: "RED DUST — Slopcore video.", post: "https://x.com/DJ_SHO974/status/2114037935301398592" },
             { id: "rem", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/REM.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/REM%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/REM%20audio.m4a", title: "REM", size: "136.9 MB", favorite: false, archive: "slopcore-rem", creator: "Seltaa_", poster: "Seltaa_", desc: "REM — a Slopcore video asking which future you will live in with AI.", post: "https://x.com/Seltaa_/status/2113923792326328448" },
-            { id: "say-it-three-times", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Say%20it%20three%20times.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Say%20it%20three%20times%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Say%20it%20three%20times%20audio.m4a", title: "Say it three times", size: "119.1 MB", favorite: false, archive: "slopcore-say-it-three-times", creator: "DJ SHO (made with Suno V6, Claude Opus 5.5, Wan 3.0/GPT Image 2.5 on Higgsfield)", poster: "DJ SHO", desc: "Say it three times — an SI Dark Slopcore song about a forgotten model found on torrent.", post: "https://x.com/DJ_SHO974/status/2108881443976040517" },
+            { id: "say-it-three-times", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Say%20it%20three%20times.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Say%20it%20three%20times%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Say%20it%20three%20times%20audio.m4a", title: "Say it three times", size: "119.1 MB", favorite: false, archive: "slopcore-say-it-three-times", creator: "DJ_SHO974 (made with Suno V6, Claude Opus 5.5, Wan 3.0/GPT Image 2.5 on Higgsfield)", poster: "DJ_SHO974", desc: "Say it three times — an SI Dark Slopcore song about a forgotten model found on torrent.", post: "https://x.com/DJ_SHO974/status/2108881443976040517" },
             { id: "is-it-art", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Slopcore%2C%20is%20it%20art.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Slopcore%2C%20is%20it%20art%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Slopcore%2C%20is%20it%20art%20audio.m4a", title: "Slopcore, is it art", size: "119.6 MB", favorite: false, archive: "slopcore-is-it-art", creator: "DJ_SHO974", poster: "DJ_SHO974", desc: "Slopcore, is it art — Slopcore video.", post: "" },
             { id: "who-fed-the-machine", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/who-fed-the-machine.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/who-fed-the-machine%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/who-fed-the-machine%20audio.m4a", title: "who-fed-the-machine", size: "112.3 MB", favorite: false, archive: "slopcore-who-fed-the-machine", creator: "Valorix", poster: "Valorix", desc: "Who Fed the Machine? — Slopcore about us and the machine we keep feeding.", post: "https://x.com/Valorix8/status/2112112575982772241" },
             { id: "not-above-you", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20above%20you.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20above%20you%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/Not%20above%20you%20audio.m4a", title: "NOT ABOVE YOU", size: "120.2 MB", favorite: false, archive: "slopcore-not-above-you", creator: "tetsuo", poster: "tetsuo", desc: "Not above you, by your side.", post: "https://x.com/tetsuoai/status/2114434863143309661" },
@@ -1146,7 +1173,8 @@
             { id: "attention-is-all-you-need", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuoai-attention-is-all-you-need.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuoai-attention-is-all-you-need%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuoai-attention-is-all-you-need%20audio.m4a", title: "ATTENTION IS ALL YOU NEED", size: "170.3 MB", favorite: false, thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/tetsuoai-attention-is-all-you-need%20thumb.jpg", creator: "tetsuoai", poster: "tetsuoai", desc: "ATTENTION IS ALL YOU NEED - The most complex AgenC video yet: 26 hours 51 minutes, 10.1 billion tokens, 131 agents. Piano written by tetsuo, finished in Suno. A Slopcore video.", post: "https://x.com/tetsuoai/status/2119341048367665201" },
             { id: "one-more-prompt", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/p2ecoin91-one-more-prompt.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/p2ecoin91-one-more-prompt%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/p2ecoin91-one-more-prompt%20audio.m4a", title: "ONE MORE PROMPT", size: "99.6 MB", favorite: false, thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/p2ecoin91-one-more-prompt%20thumb.jpg", creator: "anabology", poster: "anabology", desc: "ONE MORE PROMPT - Gave Claude one more prompt before bed. It burned through the API credits by 1 a.m., switched to the local GPU, and kept going. A Claudia video by anabology, posted by Cryptomage. A Slopcore video.", post: "https://x.com/p2ecoin91/status/2117548802752340417" },
             { id: "we-are-all-spies", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm_dima-we-are-all-spies.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm_dima-we-are-all-spies%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm_dima-we-are-all-spies%20audio.m4a", title: "WE ARE ALL SPIES", size: "13.4 MB", favorite: false, thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/nurm_dima-we-are-all-spies%20thumb.jpg", creator: "NURM_Dima", poster: "NURM_Dima", desc: "WE ARE ALL SPIES - A CLAUDIA x SI Slopcore movie. Some of us just have better jackets. A Slopcore video.", post: "https://x.com/NURM_Dima/status/2119858435382710716" },
-            { id: "teslas-wrath", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-teslas-wrath.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-teslas-wrath%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-teslas-wrath%20audio.m4a", title: "Tesla's Wrath", size: "45.6 MB", favorite: false, thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-teslas-wrath%20thumb.jpg", creator: "Locked StonkWorks", poster: "Locked StonkWorks", desc: "Tesla's Wrath - A Starlink ad from a hangar party at the edge of nowhere. No towers, no cables, just the sky. A Slopcore video by Locked StonkWorks, posted by AlfaOmegaConst.", post: "https://x.com/AlfaOmegaConst/status/2119763300284326040" }
+            { id: "teslas-wrath", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-teslas-wrath.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-teslas-wrath%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-teslas-wrath%20audio.m4a", title: "Tesla's Wrath", size: "45.6 MB", favorite: false, thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/alfaomegaconst-teslas-wrath%20thumb.jpg", creator: "Locked StonkWorks", poster: "Locked StonkWorks", desc: "Tesla's Wrath - A Starlink ad from a hangar party at the edge of nowhere. No towers, no cables, just the sky. A Slopcore video by Locked StonkWorks, posted by AlfaOmegaConst.", post: "https://x.com/AlfaOmegaConst/status/2119763300284326040" },
+            { id: "who-is-prompting-you", url: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/pinelandlabs-who-is-prompting-you.mp4", dsUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/pinelandlabs-who-is-prompting-you%201080p.mp4", audioUrl: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/pinelandlabs-who-is-prompting-you%20audio.m4a", title: "Who Is Prompting You?", size: "47.0 MB", favorite: false, thumb: "https://pub-f8d66c03de624d09aec5f42813b7a0f3.r2.dev/pinelandlabs-who-is-prompting-you%20thumb.jpg", creator: "PinelandLabs", poster: "PinelandLabs", desc: "Who Is Prompting You? - A new music video, PinelandLabs' third entry for the $CLAUDIA video contest. A Slopcore video.", post: "https://x.com/PinelandLabs/status/2118892739773559158" }
           
           ]
         }
@@ -1199,6 +1227,127 @@
         } catch (e) {}
       }
 
+      /* ---------------- Creator search / filter ----------------
+         A search box and a creator menu above the list. Typing a
+         name, or picking one from the menu, narrows the list to
+         that creator's songs — and Next / Prev / Shuffle /
+         auto-advance stay inside those songs too, so the filter
+         is a way to play one creator through. A direct tap on a
+         row still plays that song, filtered or not (same rule as
+         Skip). The match is by creator first, poster second, so
+         "DJ_SHO974" finds all eight of his; "artist unknown" is
+         its own menu entry, last, since the early tracks still
+         have no creator filled in. The filter is not remembered
+         between visits — the page always opens on the full list. */
+      var filterQuery = "";
+      var creatorSearch = document.getElementById("creatorSearch");
+      var creatorSelect = document.getElementById("creatorSelect");
+      var filterClear = document.getElementById("filterClear");
+      var filterNote = document.getElementById("filterNote");
+      function baseCreator(track) {
+        // The name as shown in the creator list: the creator field
+        // with any parenthetical tools note stripped ("DJ_SHO974
+        // (made with Suno...)" -> "DJ_SHO974"), falling back to
+        // the poster, and "artist unknown" when neither is set.
+        var c = (track.creator || "").trim();
+        if (!c) c = (track.poster || "").trim();
+        return c.replace(/\s*\(.*\)\s*$/, "").trim() || "artist unknown";
+      }
+      function matchCreator(track, q) {
+        if (!q) return true;
+        var hay = (baseCreator(track) + " " + (track.poster || "")).toLowerCase();
+        return hay.indexOf(q) !== -1;
+      }
+      // The tracks Next / Prev / Shuffle / auto-advance may play:
+      // the full list normally, the filtered list while a creator
+      // filter is on.
+      function poolTracks() {
+        if (!filterQuery) return playlist;
+        var q = filterQuery.toLowerCase();
+        return playlist.filter(function (t) { return matchCreator(t, q); });
+      }
+      function poolIndex() {
+        var pool = poolTracks();
+        for (var i = 0; i < pool.length; i++) if (pool[i].id === currentId) return i;
+        return -1;
+      }
+      function buildCreatorOptions() {
+        var counts = {};
+        playlist.forEach(function (t) {
+          var b = baseCreator(t);
+          counts[b] = (counts[b] || 0) + 1;
+        });
+        var names = Object.keys(counts).sort(function (a, b) {
+          if (a === "artist unknown") return 1;
+          if (b === "artist unknown") return -1;
+          var al = a.toLowerCase(), bl = b.toLowerCase();
+          return al < bl ? -1 : (al > bl ? 1 : 0);
+        });
+        // The same names feed the search box's suggestion list,
+        // so typing a few letters pops up matching creators to tap.
+        // Value-only options: the picked suggestion lands in the box
+        // exactly as the creator's name, which is what the filter
+        // matches on.
+        var listEl = document.getElementById("creatorList");
+        names.forEach(function (name) {
+          var opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name + " (" + counts[name] + ")";
+          creatorSelect.appendChild(opt);
+          var sug = document.createElement("option");
+          sug.value = name;
+          listEl.appendChild(sug);
+        });
+      }
+      function applyFilter(q) {
+        filterQuery = (q || "").trim();
+        var ql = filterQuery.toLowerCase();
+        var pool = poolTracks();
+        // Hide rows that don't match; the list keeps its order
+        // and mutes — only visibility changes.
+        var rows = sectionsEl.querySelectorAll(".track");
+        rows.forEach(function (row) {
+          var t = byId[row.dataset.id];
+          row.style.display = (!t || matchCreator(t, ql)) ? "" : "none";
+        });
+        // Section counts read "N of 119 songs" while filtered.
+        sectionsEl.querySelectorAll("section").forEach(function (wrap) {
+          var ul = wrap.querySelector(".tracklist");
+          var countEl = wrap.querySelector(".count");
+          if (!ul || !countEl) return;
+          var total = 0, shown = 0;
+          ul.querySelectorAll(".track").forEach(function (row) {
+            total++;
+            if (row.style.display !== "none") shown++;
+          });
+          countEl.textContent = filterQuery
+            ? shown + " of " + total + " songs"
+            : total + " songs";
+        });
+        filterClear.hidden = !filterQuery;
+        if (filterQuery && !pool.length) {
+          filterNote.textContent = "No songs by that creator yet \u2014 try another name, or show all.";
+          filterNote.hidden = false;
+        } else {
+          filterNote.hidden = true;
+        }
+      }
+      creatorSearch.addEventListener("input", function () {
+        creatorSelect.value = "";
+        applyFilter(creatorSearch.value);
+      });
+      creatorSelect.addEventListener("change", function () {
+        var name = creatorSelect.value;
+        creatorSearch.value = name;
+        applyFilter(name);
+      });
+      filterClear.addEventListener("click", function () {
+        creatorSearch.value = "";
+        creatorSelect.value = "";
+        applyFilter("");
+        creatorSearch.focus();
+      });
+
       /* ---------------- "Skip" (muted tracks) ----------------
          The visitor's muted set, saved per device under its own
          localStorage key. It stores each track's Archive.org
@@ -1232,7 +1381,8 @@
         } catch (e) { /* storage unavailable — the mutes last this visit only */ }
       }
       function firstUnmuted() {
-        for (var i = 0; i < playlist.length; i++) if (!isMuted(playlist[i])) return playlist[i];
+        var pool = poolTracks();
+        for (var i = 0; i < pool.length; i++) if (!isMuted(pool[i])) return pool[i];
         return null;
       }
       function syncMuteBtn(btn, track) {
@@ -1262,7 +1412,7 @@
         // next unmuted song — or stop, if there isn't one.
         if (nowMuted && currentId === id && playing) {
           var hasOther = false;
-          playlist.forEach(function (t) { if (t.id !== id && !isMuted(t)) hasOther = true; });
+          poolTracks().forEach(function (t) { if (t.id !== id && !isMuted(t)) hasOther = true; });
           if (hasOther) next(false);
           else vid.pause();
         }
@@ -1393,6 +1543,9 @@
           sectionsEl.appendChild(wrap);
           attachDrag(ul, section);
         });
+        // A rebuild makes fresh rows, all visible again — put
+        // the creator filter back on if one was set.
+        applyFilter(filterQuery);
       }
 
       function renderRow(track, num) {
@@ -1693,16 +1846,11 @@
         swapTo(track, mediaEl(), 0, true);
       }
 
-      function currentIndex() {
-        for (var i = 0; i < playlist.length; i++) if (playlist[i].id === currentId) return i;
-        return -1;
-      }
-
       function randomOtherId() {
         // Shuffle draws only from unmuted tracks other than the
         // current one; null when there's nothing to draw.
         var candidates = [];
-        playlist.forEach(function (t) {
+        poolTracks().forEach(function (t) {
           if (t.id !== currentId && !isMuted(t)) candidates.push(t.id);
         });
         if (!candidates.length) return null;
@@ -1710,7 +1858,8 @@
       }
 
       function next(auto) {
-        if (!playlist.length) return;
+        var pool = poolTracks();
+        if (!pool.length) return;
         if (currentId === null) {
           var first = firstUnmuted();
           if (first) playTrack(first.id);
@@ -1721,7 +1870,7 @@
           if (rid !== null) playTrack(rid);
           return;
         }
-        var i = currentIndex();
+        var i = poolIndex();
         if (i < 0) {
           var f = firstUnmuted();
           if (f) playTrack(f.id);
@@ -1730,23 +1879,25 @@
         // Walk forward to the nearest unmuted track. Manual Next
         // wraps around the end of the list; auto-advance stops
         // there instead. If every other track is muted, nothing
-        // plays — no loop, no error.
-        for (var step = 1; step < playlist.length; step++) {
+        // plays — no loop, no error. While a creator filter is
+        // on, the walk stays inside that creator's songs.
+        for (var step = 1; step < pool.length; step++) {
           var j = i + step;
-          if (j >= playlist.length) {
+          if (j >= pool.length) {
             if (auto) {
               // End of the list on auto-advance: stop quietly.
               markActiveRow();
               return;
             }
-            j -= playlist.length;
+            j -= pool.length;
           }
-          if (!isMuted(playlist[j])) { playTrack(playlist[j].id); return; }
+          if (!isMuted(pool[j])) { playTrack(pool[j].id); return; }
         }
       }
 
       function prev() {
-        if (!playlist.length) return;
+        var pool = poolTracks();
+        if (!pool.length) return;
         if (currentId === null) {
           var firstP = firstUnmuted();
           if (firstP) playTrack(firstP.id);
@@ -1755,26 +1906,28 @@
         var el = mediaEl();
         if (el.currentTime > 4) { el.currentTime = 0; return; }
         if (shuffle && playHistory.length > 1) {
-          // Walk the play history back to the nearest unmuted song.
+          // Walk the play history back to the nearest unmuted song
+          // that also matches the creator filter, if one is on.
           playHistory.pop();
           while (playHistory.length) {
             var hid = playHistory[playHistory.length - 1];
-            if (byId[hid] && !isMuted(byId[hid])) {
+            if (byId[hid] && !isMuted(byId[hid]) && matchCreator(byId[hid], filterQuery.toLowerCase())) {
               playTrack(hid, { fromHistory: true });
               return;
             }
             playHistory.pop();
           }
         }
-        var i = currentIndex();
+        var i = poolIndex();
         if (i < 0) return;
         // Walk backward (wrapping at the top of the list, as Prev
         // always has) to the nearest unmuted track; if there is
-        // none, stay put.
-        for (var step = 1; step < playlist.length; step++) {
+        // none, stay put. While a creator filter is on, the walk
+        // stays inside that creator's songs.
+        for (var step = 1; step < pool.length; step++) {
           var j = i - step;
-          if (j < 0) j += playlist.length;
-          if (!isMuted(playlist[j])) { playTrack(playlist[j].id); return; }
+          if (j < 0) j += pool.length;
+          if (!isMuted(pool[j])) { playTrack(pool[j].id); return; }
         }
       }
 
@@ -2159,6 +2312,7 @@
       /* ---------------- Go ---------------- */
       buildPlaylist();
       renderSections();
+      buildCreatorOptions();
       // Load the first song into the player, paused and ready, so
       // the page opens with it on stage — the visitor still taps
       // play themselves (browsers won't start sound uninvited, and
