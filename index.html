@@ -1328,12 +1328,24 @@
         });
       }
       function applyFilter(q) {
+        var wasFiltering = !!filterQuery;
         filterQuery = (q || "").trim();
         // Remember the search on this device, so a page refresh
         // (an accidental pull-down refresh on a phone, the browser
         // reloading the tab) puts the same creator's songs back
         // instead of dropping the visitor on the whole list.
         try { window.localStorage.setItem("slopcore-creator-filter", filterQuery); } catch (e) { /* storage unavailable — the filter lasts this visit only */ }
+        // While a creator is searched, keep the player collapsed:
+        // a filtered list is short, and the full player plus the
+        // search bar would eat the screen and leave the list
+        // nowhere to scroll — the page kept jumping back to the
+        // top. Only the first keystroke into a search collapses
+        // it; refining a search while watching big leaves the
+        // video alone. Clearing the search at the top of the page
+        // expands the player back, as usual. (Tapping the mini-bar
+        // still expands it on purpose at any time.)
+        if (filterQuery && !wasFiltering) setMini(true);
+        else if (!filterQuery && (window.scrollY || 0) <= 30) setMini(false);
         var ql = filterQuery.toLowerCase();
         var pool = poolTracks();
         // Hide rows that don't match; the list keeps its order
@@ -2112,7 +2124,11 @@
          tap the mini-bar anywhere but its buttons, or scroll back
          to the top — on desktop updateCompact() then re-applies
          the full vs. 38vh size for the scroll position, on phones
-         it's the full original height as always. The <video>
+         it's the full original height as always. While a creator
+         filter is on, the player stays mini even at the top — a
+         filtered list is short, and the big video plus the search
+         bar would leave it nowhere to scroll; clearing the search
+         at the top expands it back. The <video>
          element is never moved, reloaded, or re-sourced here —
          only CSS sizes and the controls flag change — so the song
          plays straight through collapse and expand. Direction is
@@ -2161,7 +2177,7 @@
         if (miniGuardCycles > 0) { miniGuardCycles--; return; }
         if (stage.classList.contains("fs")) { setMini(false); return; }
         if (miniOn) {
-          if (y <= 30) setMini(false);
+          if (!filterQuery && y <= 30) setMini(false);
         } else if (dy > 6 && y > 140) {
           setMini(true);
         }
@@ -2357,19 +2373,21 @@
 
       /* ---------------- Go ---------------- */
       // Restore a saved creator filter (see applyFilter): the name
-      // goes back into the box and the menu, and the filter applies
-      // with the first render. The menu is filled after the render,
-      // so its value is set after buildCreatorOptions().
+      // goes back into the box, and the filter applies after the
+      // first render — through applyFilter itself, so the player
+      // collapses for the short filtered list just as it does when
+      // the visitor types a search. The menu is filled after the
+      // render, so its value is set there too.
       var savedFilter = "";
       try { savedFilter = window.localStorage.getItem("slopcore-creator-filter") || ""; } catch (e) { savedFilter = ""; }
-      if (savedFilter) {
-        creatorSearch.value = savedFilter;
-        filterQuery = savedFilter;
-      }
+      if (savedFilter) creatorSearch.value = savedFilter;
       buildPlaylist();
       renderSections();
       buildCreatorOptions();
-      if (savedFilter) creatorSelect.value = savedFilter;
+      if (savedFilter) {
+        creatorSelect.value = savedFilter;
+        applyFilter(savedFilter);
+      }
       // Load the first song into the player, paused and ready, so
       // the page opens with it on stage — the visitor still taps
       // play themselves (browsers won't start sound uninvited, and
