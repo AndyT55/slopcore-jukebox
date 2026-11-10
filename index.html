@@ -2100,15 +2100,18 @@
          Phones and desktops alike. Scrolling DOWN the list past
          a short threshold (140px) adds .mini: the player eases
          into the 56px bar (CSS above) so nearly the whole screen
-         becomes playlist. Scrolling UP again, or tapping the
-         bar anywhere but its buttons, expands it back — on
-         desktop updateCompact() then re-applies the full vs.
-         38vh size for the scroll position, on phones it's the
-         full original height as always. The <video> element is
-         never moved, reloaded, or re-sourced here — only CSS
-         sizes and the controls flag change — so the song plays
-         straight through collapse and expand. Direction is read
-         from the accumulated scroll delta between animation
+         becomes playlist. Scrolling UP does NOT expand it back —
+         that kept popping the big video over the list (plus the
+         search bar) every time the scroll wobbled, which made the
+         page jumpy and hid the list. To see the video big again,
+         tap the mini-bar anywhere but its buttons, or scroll back
+         to the top — on desktop updateCompact() then re-applies
+         the full vs. 38vh size for the scroll position, on phones
+         it's the full original height as always. The <video>
+         element is never moved, reloaded, or re-sourced here —
+         only CSS sizes and the controls flag change — so the song
+         plays straight through collapse and expand. Direction is
+         read from the accumulated scroll delta between animation
          frames, with a few px of slop so the height change
          itself can't retrigger the opposite move. */
       var miniOn = false;
@@ -2153,7 +2156,7 @@
         if (miniGuardCycles > 0) { miniGuardCycles--; return; }
         if (stage.classList.contains("fs")) { setMini(false); return; }
         if (miniOn) {
-          if (dy < -6 || y <= 30) setMini(false);
+          if (y <= 30) setMini(false);
         } else if (dy > 6 && y > 140) {
           setMini(true);
         }
