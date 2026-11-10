@@ -170,7 +170,20 @@
         border-radius: var(--radius);
         box-shadow: var(--shadow);
         overflow: hidden;
-        margin-bottom: 30px;
+        margin-bottom: 10px;
+      }
+      /* The stack pins player + search bar together: the bar rides
+         directly below the player in every state (full or mini),
+         so it can never slide underneath the video and vanish —
+         the bar used to stick on its own at top: 56px, which only
+         fits the 56px mini player; when scrolling up expanded the
+         player to full height, the bar hid behind it. The stack's
+         own background keeps rows from showing through the gaps. */
+      .sticky-stack {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: var(--bg);
       }
       .stage {
         position: relative;
@@ -484,13 +497,12 @@
       .reset-order:hover { color: var(--accent); }
       .drag-hint { font-size: 13px; color: var(--ink-soft); margin: 0 0 12px; }
       /* ---------- Creator search / filter ---------- */
-      /* Pinned while scrolling: the bar sticks just below the
-         collapsed 56px player (the player is sticky at top: 0,
-         z-index 50), so the search box never scrolls away down a
-         long list. Its own background keeps the rows from showing
-         through underneath; it sits below the player and above
-         the track rows (a dragged row is z-index 20). */
-      .creator-filter { position: sticky; top: 56px; z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
+      /* The bar lives inside .sticky-stack below the player, so
+         it rides along in every state and never scrolls away or
+         hides under the video. (It used to stick on its own at
+         top: 56px — right for the mini player, wrong once
+         scrolling up expanded the player to full height.) */
+      .creator-filter { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
       .creator-filter input[type="search"], .creator-filter select {
         font: inherit; font-size: 17px; color: var(--ink);
         background: var(--bg); border: 1px solid var(--line);
@@ -941,6 +953,7 @@
         <p class="credit">Various artists off X — if one's yours, tell me and I'll credit you.</p>
       </header>
 
+      <div class="sticky-stack">
       <section class="player" aria-label="Video player">
         <div class="stage" id="stage">
           <video id="vid" controls playsinline preload="metadata" hidden></video>
@@ -1007,6 +1020,7 @@
         </select>
         <button class="filter-clear" id="filterClear" type="button" hidden>Show all</button>
         <p class="filter-note" id="filterNote" hidden></p>
+      </div>
       </div>
 
       <main id="sections"></main>
