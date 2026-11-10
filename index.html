@@ -490,22 +490,23 @@
          long list. Its own background keeps the rows from showing
          through underneath; it sits below the player and above
          the track rows (a dragged row is z-index 20). */
-      .creator-filter { position: sticky; top: 56px; z-index: 40; background: var(--bg); padding: 8px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+      .creator-filter { position: sticky; top: 56px; z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
       .creator-filter input[type="search"], .creator-filter select {
-        font: inherit; font-size: 14px; color: var(--ink);
-        background: var(--panel); border: 1px solid var(--line);
-        border-radius: 999px; padding: 8px 12px; max-width: 100%;
+        font: inherit; font-size: 17px; color: var(--ink);
+        background: var(--bg); border: 1px solid var(--line);
+        border-radius: 999px; padding: 12px 16px; max-width: 100%;
       }
+      .creator-filter .filter-label { font-weight: 700; font-size: 17px; }
       .creator-filter input[type="search"] { flex: 1 1 180px; min-width: 0; }
       .creator-filter select { flex: 0 1 auto; max-width: 100%; }
       .creator-filter input[type="search"]:focus, .creator-filter select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
       .creator-filter .filter-clear {
         appearance: none; background: none; border: 0; color: var(--ink-soft);
-        font: inherit; font-size: 13px; text-decoration: underline;
-        text-underline-offset: 3px; cursor: pointer; padding: 4px 2px;
+        font: inherit; font-size: 15px; text-decoration: underline;
+        text-underline-offset: 3px; cursor: pointer; padding: 8px 4px;
       }
       .creator-filter .filter-clear:hover { color: var(--accent); }
-      .creator-filter .filter-note { flex-basis: 100%; font-size: 13px; color: var(--ink-soft); margin: 0; }
+      .creator-filter .filter-note { flex-basis: 100%; font-size: 14px; color: var(--ink-soft); margin: 0; }
       .tracklist {
         list-style: none;
         margin: 0;
@@ -628,6 +629,11 @@
         overflow-wrap: anywhere;
         min-width: 0;
       }
+      /* Title + creator stack: the creator gets a line of its own
+         under the title, so every row credits who made it. */
+      .track-text { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; flex: 1; min-width: 0; }
+      .track-creator { font-size: 13px; color: var(--ink-soft); overflow-wrap: anywhere; }
+      .track.muted .track-creator { opacity: 0.45; }
       .star { width: 15px; height: 15px; fill: var(--accent); flex: none; }
       .track-thumb {
         width: 72px;
@@ -993,6 +999,7 @@
       </section>
 
       <div class="creator-filter" id="creatorFilter">
+        <label class="filter-label" for="creatorSearch">Find a creator:</label>
         <input type="search" id="creatorSearch" placeholder="Search creator&hellip;" aria-label="Search by creator" autocomplete="off" list="creatorList">
         <datalist id="creatorList"></datalist>
         <select id="creatorSelect" aria-label="Pick a creator">
@@ -1600,10 +1607,20 @@
         thumb.addEventListener("error", function () { thumb.style.display = "none"; });
         main.appendChild(thumb);
 
+        // Title + creator stacked: the creator gets a line of its
+        // own under the title, so every row credits who made it.
+        // baseCreator() is the same name the search menu uses.
+        var textWrap = document.createElement("span");
+        textWrap.className = "track-text";
         var title = document.createElement("span");
         title.className = "track-title";
         title.textContent = track.title;
-        main.appendChild(title);
+        textWrap.appendChild(title);
+        var creator = document.createElement("span");
+        creator.className = "track-creator";
+        creator.textContent = "by " + baseCreator(track);
+        textWrap.appendChild(creator);
+        main.appendChild(textWrap);
 
         if (track.favorite) {
           var star = document.createElement("span");
