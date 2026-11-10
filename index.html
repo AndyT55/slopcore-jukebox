@@ -336,15 +336,15 @@
       }
       /* ---------- Browse mode: the pinned player as a mini-bar ----------
          Scrolling down the list collapses the pinned player into
-         a slim 56px bar (the script adds .mini): the stage eases
-         down to a 96x54 sliver of the still-playing video at the
+         a slim 83px bar (the script adds .mini): the stage eases
+         down to a 144x81 sliver of the still-playing video at the
          left — same <video> element, never reloaded or moved in
          the DOM, so playback never skips — the transport eases
          shut, and the mini-bar takes its place with the song
-         title and its own play / pause and next buttons. Scrolling up, or
-         tapping the bar, removes .mini and everything eases back:
-         full height on phones; on desktop the compact logic
-         above decides full vs. 38vh from the scroll position.
+         title and its own play / pause and next buttons. Tapping
+         the bar removes .mini and everything eases back: full
+         height on phones; on desktop the compact logic above
+         decides full vs. 38vh from the scroll position.
          The global max-height here equals the stage's natural
          16:9 height (as in the desktop rule) purely so the
          collapse can transition on every screen size, phones
@@ -362,8 +362,8 @@
       }
       .player.mini { cursor: pointer; }
       .player.mini .stage:not(.fs) {
-        width: 96px;
-        max-height: 54px;
+        width: 144px;
+        max-height: 81px;
       }
       /* The sliver is a picture, not a control surface — clicks
          land on the stage and expand the player (script below);
@@ -381,9 +381,9 @@
         display: none;
         position: absolute;
         top: 0;
-        left: 106px;
+        left: 154px;
         right: 6px;
-        height: 56px;
+        height: 83px;
         align-items: center;
         gap: 6px;
         z-index: 6;
@@ -393,15 +393,18 @@
         flex: 1;
         min-width: 0;
         font-weight: 700;
-        font-size: 14.5px;
+        font-size: 15.5px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
       .cbtn.mini-btn { width: 40px; height: 40px; }
       .cbtn.mini-btn svg { width: 18px; height: 18px; }
-      .mini-chevron { color: var(--ink-soft); flex: none; display: inline-flex; }
-      .mini-chevron svg { width: 16px; height: 16px; fill: currentColor; }
+      /* The expand cue is a real button now, not a tiny grey mark:
+         an accent disc with a white down-chevron, big enough to
+         spot and tap — the old 16px grey chevron was easy to miss. */
+      .mini-chevron { color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 5px; flex: none; display: inline-flex; align-items: center; justify-content: center; }
+      .mini-chevron svg { width: 24px; height: 24px; fill: currentColor; }
       @media (prefers-reduced-motion: reduce) {
         .stage:not(.fs) { transition: none; }
         .transport { transition: none; }
@@ -503,15 +506,14 @@
          top: 56px — right for the mini player, wrong once
          scrolling up expanded the player to full height.) */
       .creator-filter { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
-      .creator-filter input[type="search"], .creator-filter select {
+      .creator-filter input[type="search"] {
         font: inherit; font-size: 17px; color: var(--ink);
         background: var(--bg); border: 1px solid var(--line);
         border-radius: 999px; padding: 12px 16px; max-width: 100%;
       }
       .creator-filter .filter-label { font-weight: 700; font-size: 17px; }
       .creator-filter input[type="search"] { flex: 1 1 180px; min-width: 0; }
-      .creator-filter select { flex: 0 1 auto; max-width: 100%; }
-      .creator-filter input[type="search"]:focus, .creator-filter select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+      .creator-filter input[type="search"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
       .creator-filter .filter-clear {
         appearance: none; background: none; border: 0; color: var(--ink-soft);
         font: inherit; font-size: 15px; text-decoration: underline;
@@ -1015,9 +1017,6 @@
         <label class="filter-label" for="creatorSearch">Find a creator:</label>
         <input type="search" id="creatorSearch" placeholder="Search creator&hellip;" aria-label="Search by creator" autocomplete="off" list="creatorList">
         <datalist id="creatorList"></datalist>
-        <select id="creatorSelect" aria-label="Pick a creator">
-          <option value="">All creators</option>
-        </select>
         <button class="filter-clear" id="filterClear" type="button" hidden>Show all</button>
         <p class="filter-note" id="filterNote" hidden></p>
       </div>
@@ -1256,20 +1255,21 @@
       }
 
       /* ---------------- Creator search / filter ----------------
-         A search box and a creator menu above the list. Typing a
-         name, or picking one from the menu, narrows the list to
-         that creator's songs — and Next / Prev / Shuffle /
+         A search box above the list. Typing a name narrows the
+         list to that creator's songs — the box's suggestion list
+         pops up matching creators as you type, so there is no
+         separate menu to pick from. Next / Prev / Shuffle /
          auto-advance stay inside those songs too, so the filter
          is a way to play one creator through. A direct tap on a
          row still plays that song, filtered or not (same rule as
          Skip). The match is by creator first, poster second, so
-         "DJ_SHO974" finds all eight of his; "artist unknown" is
-         its own menu entry, last, since the early tracks still
-         have no creator filled in. The filter is not remembered
-         between visits — the page always opens on the full list. */
+         "DJ_SHO974" finds all nine of his; "artist unknown" is
+         its own suggestion, last, since the early tracks still
+         have no creator filled in. The search is remembered on
+         this device (see applyFilter), so a refresh puts the same
+         creator's songs back. */
       var filterQuery = "";
       var creatorSearch = document.getElementById("creatorSearch");
-      var creatorSelect = document.getElementById("creatorSelect");
       var filterClear = document.getElementById("filterClear");
       var filterNote = document.getElementById("filterNote");
       function baseCreator(track) {
@@ -1311,17 +1311,13 @@
           var al = a.toLowerCase(), bl = b.toLowerCase();
           return al < bl ? -1 : (al > bl ? 1 : 0);
         });
-        // The same names feed the search box's suggestion list,
-        // so typing a few letters pops up matching creators to tap.
+        // The names feed the search box's suggestion list, so
+        // typing a few letters pops up matching creators to tap.
         // Value-only options: the picked suggestion lands in the box
         // exactly as the creator's name, which is what the filter
         // matches on.
         var listEl = document.getElementById("creatorList");
         names.forEach(function (name) {
-          var opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name + " (" + counts[name] + ")";
-          creatorSelect.appendChild(opt);
           var sug = document.createElement("option");
           sug.value = name;
           listEl.appendChild(sug);
@@ -1378,17 +1374,10 @@
         }
       }
       creatorSearch.addEventListener("input", function () {
-        creatorSelect.value = "";
         applyFilter(creatorSearch.value);
-      });
-      creatorSelect.addEventListener("change", function () {
-        var name = creatorSelect.value;
-        creatorSearch.value = name;
-        applyFilter(name);
       });
       filterClear.addEventListener("click", function () {
         creatorSearch.value = "";
-        creatorSelect.value = "";
         applyFilter("");
         creatorSearch.focus();
       });
@@ -2116,7 +2105,7 @@
       /* ---------------- Browse mode: collapse the pinned player to a mini-bar ----------------
          Phones and desktops alike. Scrolling DOWN the list past
          a short threshold (140px) adds .mini: the player eases
-         into the 56px bar (CSS above) so nearly the whole screen
+         into the 83px bar (CSS above) so nearly the whole screen
          becomes playlist. Scrolling UP does NOT expand it back —
          that kept popping the big video over the list (plus the
          search bar) every time the scroll wobbled, which made the
@@ -2376,18 +2365,14 @@
       // goes back into the box, and the filter applies after the
       // first render — through applyFilter itself, so the player
       // collapses for the short filtered list just as it does when
-      // the visitor types a search. The menu is filled after the
-      // render, so its value is set there too.
+      // the visitor types a search.
       var savedFilter = "";
       try { savedFilter = window.localStorage.getItem("slopcore-creator-filter") || ""; } catch (e) { savedFilter = ""; }
       if (savedFilter) creatorSearch.value = savedFilter;
       buildPlaylist();
       renderSections();
       buildCreatorOptions();
-      if (savedFilter) {
-        creatorSelect.value = savedFilter;
-        applyFilter(savedFilter);
-      }
+      if (savedFilter) applyFilter(savedFilter);
       // Load the first song into the player, paused and ready, so
       // the page opens with it on stage — the visitor still taps
       // play themselves (browsers won't start sound uninvited, and
