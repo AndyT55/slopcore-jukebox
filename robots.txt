@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://andyt55.github.io/slopcore-jukebox/sitemap.xml
