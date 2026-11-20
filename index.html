@@ -991,6 +991,7 @@
             </button>
             <button class="mode-pill" id="dataSaverBtn" type="button" aria-pressed="false" title="Play the smaller copies — uses less mobile data">Data saver</button>
             <button class="mode-pill" id="audioOnlyBtn" type="button" aria-pressed="false" title="Play just the audio — no video at all, uses the least data">Audio only</button>
+            <button class="mode-pill" id="sortBtn" type="button" aria-pressed="false" title="Switch between newest first and oldest first">Oldest first</button>
           </div>
           <div class="manual" id="manual">
             <button class="manual-close" id="manualClose" type="button" aria-label="Hide the user manual" title="Hide the manual">
@@ -998,6 +999,7 @@
             </button>
             <p class="fs-tip">Dark or light: tap the moon / sun button in the top-right corner of the page to switch between dark and light mode. The page remembers your choice for next time.</p>
             <p class="fs-tip">Data saver plays the smaller copies of each video, for mobile data. Audio only plays just the sound — no video at all — which uses the least data. Both remember your choice on this device.</p>
+            <p class="fs-tip">Newest first / Oldest first flips the list so the newest songs sit on top, or back to the oldest first. It remembers your choice on this device, and each song keeps its number either way.</p>
           </div>
           <button class="manual-show" id="manualShow" type="button" aria-expanded="false" aria-controls="manual">Manual</button>
         </div>
@@ -1331,6 +1333,7 @@
       var MUTED_KEY = "slopcore-jukebox-muted-v1";
       var DS_KEY = "slopcore-jukebox-datasaver";
       var AUDIO_KEY = "slopcore-jukebox-audioonly";
+      var SORT_KEY = "slopcore-jukebox-sort-v1";
 
       /* ---------------- State ---------------- */
       var byId = {};
@@ -1343,6 +1346,30 @@
         SECTIONS.forEach(function (s) {
           orderedTracks(s).forEach(function (t) { playlist.push(t); });
         });
+        // Newest first flips the whole list, newest on top.
+        if (newestFirst) playlist.reverse();
+      }
+
+      // Catalogue number: a song's place in the list as built
+      // (oldest first, before any saved drag order or the sort
+      // flip), so the number beside a song never changes when
+      // the list is flipped or dragged — "track 212" is track
+      // 212 either way.
+      var catalogNum = {};
+      (function () {
+        var n = 0;
+        SECTIONS.forEach(function (s) { s.tracks.forEach(function (t) { catalogNum[t.id] = ++n; }); });
+      })();
+
+      /* ---------------- List order: oldest first / newest first ----------------
+         A switch in the transport flips the whole list between
+         oldest first (the way it has always been) and newest
+         first, and the page remembers the pick on this device,
+         like data saver and the creator filter. */
+      var newestFirst = false;
+      try { newestFirst = window.localStorage.getItem(SORT_KEY) === "1"; } catch (e) {}
+      function saveSort() {
+        try { window.localStorage.setItem(SORT_KEY, newestFirst ? "1" : "0"); } catch (e) { /* storage unavailable — the pick lasts this visit only */ }
       }
       function orderedTracks(section) {
         var saved = loadOrder()[section.id];
@@ -1689,8 +1716,10 @@
           var ul = document.createElement("ul");
           ul.className = "tracklist";
           ul.dataset.sectionId = section.id;
-          orderedTracks(section).forEach(function (track, i) {
-            ul.appendChild(renderRow(track, i + 1));
+          var list = orderedTracks(section);
+          if (newestFirst) list = list.slice().reverse();
+          list.forEach(function (track) {
+            ul.appendChild(renderRow(track, catalogNum[track.id]));
           });
           wrap.appendChild(ul);
           sectionsEl.appendChild(wrap);
@@ -1925,6 +1954,11 @@
             var ids = rows.map(function (r) { return r.dataset.id; });
             var moved = ids.splice(startIndex, 1)[0];
             ids.splice(targetIndex, 0, moved);
+            // The saved order is stored oldest-first, so a drag
+            // made while the list runs newest-first is flipped
+            // back before saving — otherwise the next visit would
+            // show it backwards.
+            if (newestFirst) ids.reverse();
             saveOrder(section.id, ids);
             buildPlaylist();
             renderSections();
@@ -2156,6 +2190,25 @@
         syncModeButtons();
         if (!track) return;
         swapTo(track, mediaEl(), t, wasPlaying);
+      });
+
+      /* Newest first / oldest first: flip the list order,
+         remember it on this device, and rebuild. The song on
+         stage keeps playing — only the list, and the Next /
+         Prev walk through it, change. */
+      var sortBtn = document.getElementById("sortBtn");
+      function syncSortButton() {
+        sortBtn.textContent = newestFirst ? "Newest first" : "Oldest first";
+        sortBtn.classList.toggle("on", newestFirst);
+        sortBtn.setAttribute("aria-pressed", newestFirst ? "true" : "false");
+      }
+      sortBtn.addEventListener("click", function () {
+        newestFirst = !newestFirst;
+        saveSort();
+        syncSortButton();
+        buildPlaylist();
+        renderSections();
+        markActiveRow();
       });
 
       /* ---------------- In-page fullscreen (the fullscreen icon button) ----------------
@@ -2510,6 +2563,7 @@
         markActiveRow();
       }
       syncModeButtons();
+      syncSortButton();
     </script>
     <script data-goatcounter="https://andyt55.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
