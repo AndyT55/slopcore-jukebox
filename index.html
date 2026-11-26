@@ -40,10 +40,10 @@
           // Default to dark (also covers first-time visitors with no saved preference).
           document.documentElement.setAttribute("data-theme", "dark");
         }
-        // The user manual under the player starts collapsed on
-        // every page load, on phones and desktops alike, behind
-        // its small "Manual" toggle — whatever was saved before.
-        document.documentElement.setAttribute("data-manual", "hidden");
+        // The user manual starts hidden on every page load, on
+        // phones and desktops alike, behind its small "Manual"
+        // toggle — the manual box itself carries the hidden
+        // attribute, so there is no flash before first paint.
       } catch (e) { /* storage unavailable — fall back to the system setting */ }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -286,18 +286,52 @@
          landscape, pinned or not. (Desktop's separate
          shrink-while-scrolled rule is below, after the manual
          rules; it never applies at phone widths.) */
-      /* ---------- User manual (the tips under the player) ----------
-         Starts collapsed on every page load, at every screen
-         size: the head script sets data-manual="hidden" before
-         first paint, so there is no flash. The small "Manual"
-         toggle below stays on screen either way — tapping it
-         expands the manual, tapping it again (or the X in the
-         manual's corner) collapses it. */
-      .manual { position: relative; padding-right: 36px; }
+      /* ---------- User manual: a pop-out over the page ----------
+         Tapping the small "Manual" toggle opens the manual as a
+         box floating over the page (same pattern as the track info
+         pop-up): its own scroll area inside, an X in the corner
+         to close it, and the page and list behind stay put. The
+         manual box lives at the end of the body, next to the info
+         pop-up — NOT inside the player, whose overflow: hidden
+         (and the transport's collapse when the player goes mini)
+         would clip a fixed box placed there. It starts hidden
+         via its hidden attribute, so there is no flash before
+         first paint. */
+      .manual {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .manual[hidden] { display: none; }
+      .manual-card {
+        position: relative;
+        background: var(--panel);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        max-width: 560px;
+        width: 100%;
+        max-height: 80vh;
+        overflow: auto;
+        padding: 20px 22px;
+      }
+      .manual-card h3 {
+        margin: 0 0 12px;
+        font-size: 19px;
+        padding-right: 32px;
+        overflow-wrap: anywhere;
+      }
       .manual-close {
         position: absolute;
-        top: 4px;
-        right: 0;
+        top: 12px;
+        right: 12px;
         appearance: none;
         width: 30px; height: 30px;
         border-radius: 50%;
@@ -329,7 +363,6 @@
       }
       .manual-show:hover { border-color: var(--accent); color: var(--accent); }
       .manual-show:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-      :root[data-manual="hidden"] .manual { display: none; }
       /* ---------- Desktop: shrink the pinned player while scrolled ----------
          On desktop (above the 700px phone breakpoint) the full
          pinned player leaves only a couple of songs visible, so
@@ -466,7 +499,7 @@
       .controls {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         /* On a narrow phone the controls wrap to a second line
            instead of pushing the last button off the edge. */
         flex-wrap: wrap;
@@ -536,7 +569,6 @@
         padding: 4px 2px;
       }
       .reset-order:hover { color: var(--accent); }
-      .drag-hint { font-size: 13px; color: var(--ink-soft); margin: 0 0 12px; }
       /* ---------- Creator search / filter ---------- */
       /* The bar lives inside .sticky-stack below the player, so
          it rides along in every state and never scrolls away or
@@ -871,6 +903,10 @@
         flex: none;
         white-space: nowrap;
       }
+      /* The three pills in the transport row (Data saver /
+         Audio only / Oldest first) get tighter padding so all
+         three fit on one line on a phone instead of stacking. */
+      .controls .mode-pill { padding: 6px 10px; font-size: 12px; }
       .mode-pill:hover { border-color: var(--accent); color: var(--accent); }
       .mode-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       .mode-pill.on {
@@ -1036,16 +1072,6 @@
             <button class="mode-pill" id="audioOnlyBtn" type="button" aria-pressed="false" title="Play just the audio — no video at all, uses the least data">Audio only</button>
             <button class="mode-pill" id="sortBtn" type="button" aria-pressed="false" title="Switch between newest first and oldest first">Oldest first</button>
           </div>
-          <div class="manual" id="manual">
-            <button class="manual-close" id="manualClose" type="button" aria-label="Hide the user manual" title="Hide the manual">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-            </button>
-            <p class="fs-tip">Dark or light: tap the moon / sun button in the top-right corner of the page to switch between dark and light mode. The page remembers your choice for next time.</p>
-            <p class="fs-tip">Data saver plays the smaller copies of each video, for mobile data. Audio only plays just the sound — no video at all — which uses the least data. Both remember your choice on this device.</p>
-            <p class="fs-tip">Newest first / Oldest first flips the list so the newest songs sit on top, or back to the oldest first. It remembers your choice on this device, and each song keeps its number either way.</p>
-            <p class="fs-tip">Find a creator or a song: tap the Creator or Song pill above the list, then type — the pills remember your pick on this device. The button beside the search bar jumps to the bottom of the list, then back to the top — it always reads the direction it will take you.</p>
-            <p class="fs-tip">Share a song: tap Share on its row and pick where to send it — the phone's own share menu, with the smaller copy that loads fast.</p>
-          </div>
           <button class="manual-show" id="manualShow" type="button" aria-expanded="false" aria-controls="manual">Manual</button>
         </div>
         <div class="mini-bar" id="miniBar">
@@ -1087,6 +1113,21 @@
           <p><span class="info-label">Posted by</span><span id="infoPoster"></span></p>
           <p id="infoDesc"></p>
           <p><a id="infoPost" href="#" target="_blank" rel="noopener">Original post on X</a></p>
+        </div>
+      </div>
+
+      <div class="manual" id="manual" hidden>
+        <div class="manual-card" role="dialog" aria-modal="true" aria-labelledby="manualTitle">
+          <button class="manual-close" id="manualClose" type="button" aria-label="Close the user manual" title="Close the manual">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+          <h3 id="manualTitle">Manual</h3>
+            <p class="fs-tip">Dark or light: tap the moon / sun button in the top-right corner of the page to switch between dark and light mode. The page remembers your choice for next time.</p>
+            <p class="fs-tip">Data saver plays the smaller copies of each video, for mobile data. Audio only plays just the sound — no video at all — which uses the least data. Both remember your choice on this device.</p>
+            <p class="fs-tip">Newest first / Oldest first flips the list so the newest songs sit on top, or back to the oldest first. It remembers your choice on this device, and each song keeps its number either way.</p>
+            <p class="fs-tip">Find a creator or a song: tap the Creator or Song pill above the list, then type — the pills remember your pick on this device. The button beside the search bar jumps to the bottom of the list, then back to the top — it always reads the direction it will take you.</p>
+            <p class="fs-tip">Share a song: tap Share on its row and pick where to send it — the phone's own share menu. The link opens a page with the song's picture that plays the smaller copy, which loads fast.</p>
+            <p class="fs-tip">Tap a song to play it. To change the order, press and hold the dots beside a song until it lifts, then drag it where you want it — this device remembers it for next time. Tap "Skip" to grey a song out and the jukebox will skip it; tap Undo to bring it back. "Reset order" at the top of the list puts the order back to the way it started.</p>
         </div>
       </div>
 
@@ -1948,11 +1989,6 @@
           head.appendChild(reset);
           wrap.appendChild(head);
 
-          var hint = document.createElement("p");
-          hint.className = "drag-hint";
-          hint.textContent = "Tap a song to play it. To change the order, press and hold the dots beside a song until it lifts, then drag it where you want it — this device remembers it for next time. Tap \"Skip\" to grey a song out and the jukebox will skip it; tap Undo to bring it back.";
-          wrap.appendChild(hint);
-
           var ul = document.createElement("ul");
           ul.className = "tracklist";
           ul.dataset.sectionId = section.id;
@@ -1971,15 +2007,21 @@
         applyFilter(filterQuery);
       }
 
-      // "Share" opens the device's native share sheet with
-      // this song's data-saver (1080p) copy - the middle-
-      // bandwidth file, fast on slow connections and still
-      // clear on phones. Where the browser has no share sheet,
-      // the same link is copied to the clipboard instead. The
-      // data-saver copy is shared even for over-limit originals,
-      // which already default to it. (Nov 25, 2026.)
-      function shareTrack(track) {
-        var url = track.dsUrl || track.url;
+      // "Share" opens the device's native share sheet with this
+      // song's share page (share/<number>.html on the jukebox
+      // site) - a small page with the song's picture and the
+      // data-saver (1080p) copy playing on it. Facebook, X and
+      // mail apps read the page's Open Graph tags and show the
+      // picture; a bare video file has no tags, so sharing the
+      // raw file showed a blank box. Where the browser has no
+      // share sheet, the same page link is copied to the
+      // clipboard instead. The page plays the data-saver copy
+      // even for over-limit originals, which already default
+      // to it. (Share pages added Nov 26, 2026.)
+      var SHARE_BASE = "https://andyt55.github.io/slopcore-jukebox/share/";
+      function sharePageUrl(num) { return SHARE_BASE + num + ".html"; }
+      function shareTrack(track, num) {
+        var url = sharePageUrl(num);
         var text = track.title + " \u2014 by " + baseCreator(track);
         if (window.navigator && window.navigator.share) {
           window.navigator.share({ title: track.title, text: text, url: url })
@@ -2084,9 +2126,9 @@
           openInfo(track);
         });
         // The "Share" button sits beside Info: it opens the
-        // device's native share sheet with this song's
-        // data-saver copy (or copies the link where there is no
-        // share sheet). Outside the play button, so tapping it
+        // device's native share sheet with this song's share
+        // page (or copies the link where there is no share
+        // sheet). Outside the play button, so tapping it
         // never starts the song.
         var shareBtn = document.createElement("button");
         shareBtn.className = "info-btn share-btn";
@@ -2096,7 +2138,7 @@
         shareBtn.title = "Share this song";
         shareBtn.addEventListener("click", function (ev) {
           ev.stopPropagation();
-          shareTrack(track);
+          shareTrack(track, num);
         });
         // The three pills live in their own group at the end of
         // the row, so on phones they can stack one above the
@@ -2665,26 +2707,32 @@
       });
       syncMiniPlay();
 
-      /* ---------------- User manual: collapse / expand ----------------
+      /* ---------------- User manual: pop-out open / close ----------------
          Everywhere, phones and desktops alike: the manual starts
-         collapsed on every page load (the head script sets
-         data-manual="hidden" before first paint), behind the
-         small "Manual" toggle. The toggle stays visible either
-         way — click it to expand, click again to collapse; the
-         X in the manual's corner collapses it too. Nothing is
-         persisted: the next page load starts collapsed again. */
+         hidden on every page load (its hidden attribute in the
+         markup), behind the small "Manual" toggle. The toggle
+         stays visible either way — click it to open the pop-out,
+         click again to close; the X in the pop-out's corner
+         closes it too, as does tapping the dimmed page around
+         it or pressing Escape. While it is open the page behind
+         cannot scroll. Nothing is persisted: the next page load
+         starts hidden again. */
+      var manualEl = document.getElementById("manual");
       var manualCloseBtn = document.getElementById("manualClose");
       var manualShowBtn = document.getElementById("manualShow");
       function setManualHidden(hidden) {
-        if (hidden) document.documentElement.setAttribute("data-manual", "hidden");
-        else document.documentElement.removeAttribute("data-manual");
+        manualEl.hidden = hidden;
         manualShowBtn.setAttribute("aria-expanded", hidden ? "false" : "true");
+        document.documentElement.style.overflow = hidden ? "" : "hidden";
+        document.body.style.overflow = hidden ? "" : "hidden";
       }
-      // Collapsed by default on every load, for every visitor.
+      // Hidden by default on every load, for every visitor.
       setManualHidden(true);
       manualCloseBtn.addEventListener("click", function () { setManualHidden(true); });
+      manualEl.addEventListener("click", function (ev) { if (ev.target === manualEl) setManualHidden(true); });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !manualEl.hidden) setManualHidden(true); });
       manualShowBtn.addEventListener("click", function () {
-        setManualHidden(document.documentElement.getAttribute("data-manual") !== "hidden");
+        setManualHidden(!manualEl.hidden);
       });
 
       /* ---------------- Dark / light toggle ----------------
