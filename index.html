@@ -2668,9 +2668,21 @@
         miniPlayBtn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
         miniPlayBtn.title = isPlaying ? "Pause" : "Play";
       }
+      /* Native fullscreen (the video's own fullscreen button) sets
+         document.fullscreenElement, unlike the player's own in-page
+         "fs" mode. While native fullscreen is active the mini player
+         must never switch the native controls off — with controls off
+         in native fullscreen no control bar appears at all and the
+         only way out is Escape. Older browsers without
+         fullscreenElement report no fullscreen, which is the safe
+         default. */
+      function isNativeFullscreen() {
+        try { return !!document.fullscreenElement; } catch (e) { return false; }
+      }
       function setMini(on) {
         if (on === miniOn) return;
         if (on && stage.classList.contains("fs")) return;
+        if (on && isNativeFullscreen()) return;
         miniOn = on;
         playerEl.classList.toggle("mini", on);
         // Ignore scroll triggers for the next few evaluations
@@ -2694,6 +2706,7 @@
         var y = miniLastY;
         var dy = miniDy;
         miniDy = 0;
+        if (isNativeFullscreen()) { setMini(false); return; }
         if (miniGuardCycles > 0) { miniGuardCycles--; return; }
         if (stage.classList.contains("fs")) { setMini(false); return; }
         if (miniOn) {
@@ -2895,6 +2908,11 @@
             if (p && p.catch) p.catch(function () {});
           }
         }
+        /* Entering native fullscreen (the video's own button): the
+           mini player must come off so the native controls stay
+           available — with controls off in native fullscreen no
+           control bar appears and only Escape gets out. */
+        if (document.fullscreenElement) setMini(false);
       });
 
       /* ---------------- Go ---------------- */
